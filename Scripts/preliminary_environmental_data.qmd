@@ -247,7 +247,7 @@ ggmap(PaikoMap)+
 #| warning: false
 #| message: false
 
-EnviroData_means<-EnviroData%>%
+EnviroData_means<-EnviroData%>% 
 # Pivot Longer
   pivot_longer(cols = c(temp_c, salinity_ppt, depth_cm), # parameters
                names_to = "Variable",    # columns for those
