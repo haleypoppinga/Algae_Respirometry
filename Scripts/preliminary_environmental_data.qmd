@@ -53,6 +53,9 @@ library(ggplot2)
 library(cmocean) # colors
 library(ggspatial)
 library(ggmap)
+library(forcats)
+library(stringr)
+library(sf)
 ```
 
 
@@ -239,6 +242,26 @@ ggmap(PaikoMap)+
 
 
 
+### Calculate Means  
+```{r}
+#| warning: false
+#| message: false
+
+EnviroData_means<-EnviroData%>%
+# Pivot Longer
+  pivot_longer(cols = c(temp_c, salinity_ppt, depth_cm), # parameters
+               names_to = "Variable",    # columns for those
+               values_to = "Value") %>%  # measurement and all metadata
+# Summarise Means and Variances
+  group_by(location, Variable) %>% # group by inshore/offshore and variables
+  summarise(parameter_mean = mean(Value, na.rm = TRUE)) # get mean 
+
+EnviroData_means
+```
+
+
+
+
 ##### Extra  
 ```{r}
 # ggsave(here("Output", "plot_january2026.jpg"))
@@ -250,8 +273,25 @@ ggmap(PaikoMap)+
 # .rs.restartR()
 # remove whole list in environment
 # rm(list = ls())
+
+
+
 ```
 
+Forloop
+variation_equation<-function(variance, mean) { # name the function and add arguments
+  variation<- variance / ((mean)^2) # put in equation for pH? variation
+  return(variation) # output the result
+}
 
+pH_wailupe_variation<-chemdata %>% 
+  drop_na(pH) %>% # drop NAs for pH
+  group_by(Site, Lat, Long) %>% 
+  filter(Site == "W") %>%  # filter only Wailupe site
+  summarise(pH_mean = mean(pH, na.rm = TRUE), # get means
+            pH_variance = var(pH, na.rm = TRUE)) %>%  # get variances
+  mutate(variation = variation_equation(pH_variance, pH_mean)) # calculate variation using my function
+
+pH_wailupe_variation
 
 
