@@ -95,6 +95,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#salinity-map" id="toc-salinity-map" class="nav-link" data-scroll-target="#salinity-map">Salinity Map</a></li>
   <li><a href="#temperature-map" id="toc-temperature-map" class="nav-link" data-scroll-target="#temperature-map">Temperature Map</a></li>
   <li><a href="#depth-map" id="toc-depth-map" class="nav-link" data-scroll-target="#depth-map">Depth Map</a></li>
+  <li><a href="#calculate-means" id="toc-calculate-means" class="nav-link" data-scroll-target="#calculate-means">Calculate Means</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -137,7 +138,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="preliminary-background-environmental-data" class="level3">
 <h3 class="anchored" data-anchor-id="preliminary-background-environmental-data">Preliminary Background Environmental Data</h3>
 <p><strong>Location: Paikō Beach in Maunalua Bay</strong></p>
-<p>Description: On January 1st, 2026, Haley and Mica took environmental data at Paikō Beach in Maunalua Bay. Three 30m transects were laid out (one transect at a time) parallel to shore (alongshore) at an inshore location and an offshore location near the western end of the beach adjacent to a freshwater fishpond site(Kalauha‘iha‘i Fishpond) with potential SGD implications. Measurements of salinity, temperature, depth, and coordinates were recorded every 2m along the transect. Low tide was 0.0ft at 11:18 and high tide was 0.7ft at 15:51. Sampling inshore began at 10:59 and offshore began at 12:57.</p>
+<p>Description: On January 1st, 2026, Haley and Mica took environmental data at Paikō Beach in Maunalua Bay. Three 30m transects were laid out (one transect at a time) parallel to shore (alongshore) at an inshore location and an offshore location near the western end of the beach adjacent to a freshwater fishpond site (Kalauha‘iha‘i Fishpond) with potential SGD implications.</p>
+<p>Measurements of salinity, temperature, depth, and coordinates were recorded every 2m along the transect.</p>
+<p>Low tide was 0.0ft at 11:18 and high tide was 0.7ft at 15:51. Sampling inshore began at 10:59 and offshore began at 12:57.</p>
 <p>Metrics Measured:</p>
 <ul>
 <li>Salinity (ppt)<br>
@@ -161,7 +164,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><a href="https://cran.r-project.org/web/packages/cmocean/cmocean.pdf">cmocean color palette good for oceanography</a>.</li>
 </ul>
 <p>Google Static Map:<br>
-Code for installing google maps: register_google(key = “your key here”, write = TRUE) ### use your own api</p>
+Code for installing google maps: register_google(key = “your key here”, write = TRUE) # use your own api</p>
 <ul>
 <li>IMPORTANT don’t put your key to github!! I usually save mine in a text file and import it each time (need to reload it if update R or new computer)<br>
 </li>
@@ -177,7 +180,10 @@ Code for installing google maps: register_google(key = “your key here”, writ
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cmocean) <span class="co"># colors</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggspatial)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggmap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggmap)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forcats)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(stringr)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="read-in-data" class="level2">
@@ -301,7 +307,7 @@ $ long_manual_converted_dd &lt;dbl&gt; 157.7322, 157.7322, 157.7322, 157.7321, 1
 <span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
 <span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span>
 <span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">here</span>(<span class="st">"Output"</span>,<span class="st">"salinityplot_january2026.png"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="co"># ggsave(here("Output","salinityplot_january2026.png"))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-salinity" class="quarto-float quarto-figure quarto-figure-center anchored" width="672">
 <figure class="quarto-float quarto-float-fig figure">
@@ -349,7 +355,7 @@ Figure&nbsp;1
 <span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
 <span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span>
 <span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">here</span>(<span class="st">"Output"</span>,<span class="st">"tempplot_january2026.png"</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="co"># ggsave(here("Output","tempplot_january2026.png")) </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-temp" class="quarto-float quarto-figure quarto-figure-center anchored" width="672">
 <figure class="quarto-float quarto-float-fig figure">
@@ -396,7 +402,7 @@ Figure&nbsp;2
 <span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
 <span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span>
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">here</span>(<span class="st">"Output"</span>,<span class="st">"depthplot_january2026.png"</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="co"># ggsave(here("Output","depthplot_january2026.png")) </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-depth" class="quarto-float quarto-figure quarto-figure-center anchored" width="672">
 <figure class="quarto-float quarto-float-fig figure">
@@ -411,19 +417,49 @@ Figure&nbsp;3
 </div>
 </div>
 <p><a href="#fig-depth" class="quarto-xref">Figure&nbsp;3</a> shows the depth gradient between inshore and offshore locations at Paikō Beach in Maunalua Bay. Deeper depth exhibited offshore. Potential source marked with a white star.</p>
+</section>
+<section id="calculate-means" class="level3">
+<h3 class="anchored" data-anchor-id="calculate-means">Calculate Means</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>EnviroData_means<span class="ot">&lt;-</span>EnviroData<span class="sc">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Pivot Longer</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(temp_c, salinity_ppt, depth_cm), <span class="co"># parameters</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Variable"</span>,    <span class="co"># columns for those</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"Value"</span>) <span class="sc">%&gt;%</span>  <span class="co"># measurement and all metadata</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarise Means and Variances</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, Variable) <span class="sc">%&gt;%</span> <span class="co"># group by inshore/offshore and variables</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">parameter_mean =</span> <span class="fu">mean</span>(Value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="co"># get mean </span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>EnviroData_means</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 3
+# Groups:   location [2]
+  location Variable     parameter_mean
+  &lt;chr&gt;    &lt;chr&gt;                 &lt;dbl&gt;
+1 inshore  depth_cm               25.3
+2 inshore  salinity_ppt           35.3
+3 inshore  temp_c                 25.0
+4 offshore depth_cm               70.6
+5 offshore salinity_ppt           35.8
+6 offshore temp_c                 25.7</code></pre>
+</div>
+</div>
 <section id="extra" class="level5">
 <h5 class="anchored" data-anchor-id="extra">Extra</h5>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ggsave(here("Output", "plot_january2026.jpg"))</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># To do before running code:</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Empty your environment before you start working</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Restart R</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># .rs.restartR()</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co"># remove whole list in environment</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># rm(list = ls())</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ggsave(here("Output", "plot_january2026.jpg"))</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># To do before running code:</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Empty your environment before you start working</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Restart R</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co"># .rs.restartR()</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co"># remove whole list in environment</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co"># rm(list = ls())</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>Forloop variation_equation&lt;-function(variance, mean) { # name the function and add arguments variation&lt;- variance / ((mean)^2) # put in equation for pH? variation return(variation) # output the result }</p>
+<p>pH_wailupe_variation&lt;-chemdata %&gt;% drop_na(pH) %&gt;% # drop NAs for pH group_by(Site, Lat, Long) %&gt;% filter(Site == “W”) %&gt;% # filter only Wailupe site summarise(pH_mean = mean(pH, na.rm = TRUE), # get means pH_variance = var(pH, na.rm = TRUE)) %&gt;% # get variances mutate(variation = variation_equation(pH_variance, pH_mean)) # calculate variation using my function</p>
+<p>pH_wailupe_variation</p>
 </section>
 </section>
 </section>
