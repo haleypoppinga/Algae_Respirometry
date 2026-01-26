@@ -12,9 +12,11 @@ format:
 ### Preliminary Background Environmental Data  
 **Location: Paikō Beach in Maunalua Bay**  
 
-Description: On January 1st, 2026, Haley and Mica took environmental data at Paikō Beach in Maunalua Bay. Three 30m transects were laid out (one transect at a time) parallel to shore (alongshore) at an inshore location and an offshore location near the western end of the beach adjacent to a freshwater fishpond site(Kalauha‘iha‘i Fishpond) with potential SGD implications.  
+Description: On January 1st, 2026, Haley and Mica took environmental data at Paikō Beach in Maunalua Bay. Three 30m transects were laid out (one transect at a time) parallel to shore (alongshore) at an inshore location and an offshore location near the western end of the beach adjacent to a freshwater fishpond site (Kalauha‘iha‘i Fishpond) with potential SGD implications.  
+
 
 Measurements of salinity, temperature, depth, and coordinates were recorded every 2m along the transect.  
+
 
 Low tide was 0.0ft at 11:18 and high tide was 0.7ft at 15:51. Sampling inshore began at 10:59 and offshore began at 12:57.  
 
