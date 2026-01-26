@@ -256,7 +256,7 @@ EnviroData_means<-EnviroData%>%
   group_by(location, Variable) %>% # group by inshore/offshore and variables
   summarise(parameter_mean = mean(Value, na.rm = TRUE)) # get mean 
 
-EnviroData_means
+EnviroData_means 
 ```
 
 
