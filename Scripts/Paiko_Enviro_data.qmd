@@ -65,7 +65,7 @@ library(sf)
 #| warning: false
 #| message: false
 
-EnviroData<-read_csv(here("Data","background_enviro_data.csv"))
+EnviroData<-read_csv(here("Data","Paiko_Enviro_meta.csv"))
 glimpse(EnviroData)
 ```
 
@@ -253,7 +253,7 @@ EnviroData_means<-EnviroData%>%
                names_to = "Variable",    # columns for those
                values_to = "Value") %>%  # measurement and all metadata
 # Summarise Means and Variances
-  group_by(location, Variable) %>% # group by inshore/offshore and variables
+  group_by(zone, Variable) %>% # group by inshore/offshore and variables
   summarise(parameter_mean = mean(Value, na.rm = TRUE)) # get mean 
 
 EnviroData_means 
