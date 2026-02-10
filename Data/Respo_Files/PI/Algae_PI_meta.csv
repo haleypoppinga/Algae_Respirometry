@@ -1,4 +1,4 @@
-﻿date ,start_time,stop_time,algae_id,species,sample_id,file_id_csv,light_dark,run_block,blank ,chamber_channel,light_level,light_value
+﻿date,start_time,stop_time,algae_id,species,sample_id,file_id_csv,light_dark,run_block,blank,chamber_channel,light_level,light_value
 2026-02-02,14:00,14:15,DA04,da,DA04_PI,DA04_PI_RUN1.csv,light,run1,0,1,1,0
 2026-02-02,14:00,14:15,GS02,gs,GS02_PI,GS02_PI_RUN1.csv,light,run1,0,2,1,0
 2026-02-02,14:00,14:15,AS03,as,AS03_PI,AS03_PI_RUN1.csv,light,run1,0,3,1,0
