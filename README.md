@@ -21,7 +21,7 @@ This repository includes Haley Poppinga's Algae Respirometry Chapter: Data, Scri
 * **[Silbiger Lab GitHub](https://github.com/SilbigerLab)**  
 * Respirometry Protocols Link [Here](https://github.com/SilbigerLab/Protocols/tree/master/Physiological_Parameter_Protocols/Protocols/Respirometry_Protocol)
 * Malama Maunalua Website Link [Here](https://www.malamamaunalua.org/)!  
-* Background Environmental Data Quarto Link [Here](https://raw.githack.com/haleypoppinga/Algae_Respirometry/main/Scripts/preliminary_environmental_data.html)  
+* Background Paikō Environmental Data Quarto Link [Here](https://raw.githack.com/haleypoppinga/Algae_Respirometry/main/Scripts/preliminary_environmental_data.html)  
 
 
 -------------------------------------------------------------------------------------
@@ -35,19 +35,20 @@ This repository includes Haley Poppinga's Algae Respirometry Chapter: Data, Scri
 
 #### [Data](https://github.com/haleypoppinga/Algae_Respirometry/tree/main/Data): _Field Data_  
 
-* Preliminary Background Environmental Data  
+* Preliminary Background Environmental Data from Paikō  
 * Data Dictionary (need to add**)  
 * Folder: Respo_Files (from respo runs)  
 
 
 
-#### [Scripts](): _Code_   
+#### [Scripts](https://github.com/haleypoppinga/Algae_Respirometry/tree/main/Scripts): _Code_   
 
 * Preliminary Environmental Data code: Quarto, HTML, and files    
+* Respirometry processing notes  
 
 
 
-#### [Output](): _Maps and Plots_  
+#### [Output](https://github.com/haleypoppinga/Algae_Respirometry/tree/main/Output): _Maps and Plots_  
 
 * Salinity, Temperature, Depth gradient maps in Paikō  
 
