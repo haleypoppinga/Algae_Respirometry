@@ -1,6 +1,6 @@
 ###### Respo Code for Algae PI Curve ####### 
 ### Created by: Haley Poppinga, Maya Powell, Nyssa Silbiger
-#### Last updated on: 2026-04-06
+#### Last updated on: 2026-04-06, 2026-06-01
 #### PI Update: 2026-02-09
 
 ############## Introduction to code/script ####################
@@ -49,7 +49,7 @@ library(beepr)
 
 #set the path to all of the raw oxygen datasheets
 ## these are saved onto the computer in whatever file path/naming scheme you saved things to 
-path.p<-here("Data","Respo_Files","PI","RawO2") #the location of all your respirometry files
+path.p<-here("Data","Respo_Files","Trials", "Trial_PI","RawO2_Trial") #the location of all your respirometry files
 #you can change to individual run folders if needed
 
 # bring in all of the individual files
@@ -65,21 +65,21 @@ ch.vol <- 482 #mL #of small chambers 12
 ############################################
 #Load your respiration data file, with all the times, water volumes(mL), #not doing dry weight just SA
 #RespoMeta <- read_csv(here("Data","RespoFiles","Respo_Metadata_SGDDilutions_Cabral_Varari.csv"))
-BioData <- read_csv(here("Data","Respo_Files","PI","Algae_Measurements_PI.csv"))
+BioData_Trial <- read_csv(here("Data","Respo_Files","Trials", "Trial_PI","Algae_Measurements_TrialPI.csv"))
 
-RespoMeta <- read_csv(here("Data","Respo_Files","PI","Algae_PI_meta.csv"))
-#View(BioData)
-#View(RespoMeta)
+RespoMeta_Trial <- read_csv(here("Data","Respo_Files","Trials", "Trial_PI","Algae_TrialPI_meta.csv"))
+#View(BioData_Trial)
+#View(RespoMeta_Trial)
 ## try first with prelim fake data to make sure script runs
 ## then switch to real calculated data after getting volumes and weight and surface area
 
 
 # join the data together
-Sample_Info <- left_join(RespoMeta, BioData) %>% #, by = c("sample_id", "algae_id"))
+Sample_Info_Trial <- left_join(RespoMeta_Trial, BioData_Trial) %>% #, by = c("sample_id", "algae_id"))
   mutate(light_level = as.integer(light_level)) %>% 
-  #select(file_id_csv, light_level, date, start_time, stop_time, species, algae_id, sample_id, light_dark, 
+  #dplyr::select(file_id_csv, light_level, date, start_time, stop_time, species, algae_id, sample_id, light_dark, 
   #blank, chamber_channel, run_block, light_value, volume_mL, wetweight_g) # only what we need
-  select(file_id_csv, light_level, date, start_time, stop_time, species, algae_id, light_value, light_dark, blank, run_block, chamber_channel, volume_mL, wetweight_g)
+  dplyr::select(file_id_csv, light_level, date, start_time, stop_time, species, algae_id, light_value, light_dark, blank, run_block, chamber_channel, volume_mL, wetweight_g)
 # intentionally NOT including sample_id, temp_c already in RespoR
 
 
@@ -89,7 +89,7 @@ Sample_Info <- left_join(RespoMeta, BioData) %>% #, by = c("sample_id", "algae_i
 
 ##### Make sure times are consistent ####
 # make start and stop times real times, so that we can join the respo output and sample_info data frames
-Sample_Info <- Sample_Info %>% 
+Sample_Info_Trial <- Sample_Info_Trial %>% 
   #drop_na(sample_ID) %>% 
   unite(date,start_time,col="start_time",remove=F, sep=" ") %>% 
   unite(date,stop_time,col="stop_time",remove=F, sep=" ") %>%
@@ -105,7 +105,7 @@ Sample_Info <- Sample_Info %>%
 
 n_light_levels<-8 # number of unique light levels
 
-RespoR <- tibble(.rows = length(filenames_final)*n_light_levels,
+RespoR_Trial <- tibble(.rows = length(filenames_final)*n_light_levels,
                  file_id_csv = NA_character_,
                  sample_id = NA_character_,
                  intercept = NA_real_,
@@ -118,7 +118,7 @@ RespoR <- tibble(.rows = length(filenames_final)*n_light_levels,
 
 
 # create directory for output folder
-out_dir <- here("Output", "PI")
+out_dir <- here("Output", "Trial_PI")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 
@@ -128,7 +128,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 ###forloop#####
 for(i in 1:length(filenames_final)) { # loop each raw file?
-  FRow <- as.numeric(which(Sample_Info$file_id_csv==filenames_final[i])) # stringsplit this renames our file
+  FRow <- as.numeric(which(Sample_Info_Trial$file_id_csv==filenames_final[i])) # stringsplit this renames our file
   
   Respo.Data1 <- read_csv(skip=1,file.path(path.p, paste0(file.names.full[i]))) %>% # reads in each file in list
     dplyr::select(Date, Time, Value, Temp) %>% # keep only what we need: Time stamp per 1sec, Raw O2 value per 1sec, in situ temp per 1sec
@@ -142,7 +142,7 @@ for(i in 1:length(filenames_final)) { # loop each raw file?
   ## cut the data by start and stop times from metadata
   #Use start time of each light step from the metadata to separate data by light stop
   
-  oxy_subsets <- Sample_Info[FRow,] %>%
+  oxy_subsets <- Sample_Info_Trial[FRow,] %>%
     pmap(function(light_level, start_time, stop_time, ...) {
       data <- Respo.Data1  %>%
         filter(Time >= start_time & Time <= stop_time) %>%
@@ -159,7 +159,7 @@ for(i in 1:length(filenames_final)) { # loop each raw file?
       #   filter(sec > 60)  %>%# delete the first 2 mins of data assuming freq of 0.5 Hz
       #   mutate(row_number = row_number()) %>%
       #   filter(row_number %% 10 == 0) %>%  # keep every 10th row only to thin the data
-      #   select(-row_number) %>%
+      #   dplyr::select(-row_number) %>%
       #   mutate(sec2 = row_number())  #update the row numbers
       # #return(subset)
     }) 
@@ -196,7 +196,7 @@ for(i in 1:length(filenames_final)) { # loop each raw file?
   
   # Map LoLinR function onto all intervals of each sample's thinned dataset
   df <- combined_oxy %>%
-    select(t_sec, Value, light_level, Temp)%>%
+    dplyr::select(t_sec, Value, light_level, Temp)%>%
     mutate(t_sec = as.numeric(t_sec))%>%
     nest_by(light_level) %>%
     ungroup()%>%
@@ -205,7 +205,7 @@ for(i in 1:length(filenames_final)) { # loop each raw file?
            RegStats =map(regs, function(x){ # extract the intercept and slope for the parameters
              x$allRegs %>%
                slice(1) %>%
-               select(intercept = b0,
+               dplyr::select(intercept = b0,
                       umol.L.sec = b1)
            }) )
   
@@ -220,10 +220,10 @@ for(i in 1:length(filenames_final)) { # loop each raw file?
   
   
   # attach meta for this file (by light_level)
-  meta_steps <- Sample_Info[FRow,] %>% select(light_level, light_value, run_block)
+  meta_steps <- Sample_Info_Trial[FRow,] %>% dplyr::select(light_level, light_value, run_block)
   
   df <- df %>%
-    select(light_level, temp_c, RegStats) %>%
+    dplyr::select(light_level, temp_c, RegStats) %>%
     unnest(RegStats) %>%
     left_join(meta_steps, by="light_level") %>%
     mutate(sample_id = rename)   # keep your original sample_id style
@@ -236,17 +236,17 @@ for(i in 1:length(filenames_final)) { # loop each raw file?
   idx <- ((i - 1) * n_light_levels + 1):(i * n_light_levels)
   
   # store file id for join later
-  RespoR[idx, "file_id_csv"] <- filenames_final[i]
+  RespoR_Trial[idx, "file_id_csv"] <- filenames_final[i]
   
   
   # fill in all the O2 consumption and rate data
-  RespoR[idx,"temp_c"]      <- df$temp_c
-  RespoR[idx,"sample_id"]   <- df$sample_id
-  RespoR[idx,"intercept"]   <- df$intercept
-  RespoR[idx,"umol.L.sec"]  <- df$umol.L.sec
-  RespoR[idx,"light_level"] <- df$light_level
-  RespoR[idx,"light_value"] <- df$light_value
-  RespoR[idx,"run_block"]   <- df$run_block
+  RespoR_Trial[idx,"temp_c"]      <- df$temp_c
+  RespoR_Trial[idx,"sample_id"]   <- df$sample_id
+  RespoR_Trial[idx,"intercept"]   <- df$intercept
+  RespoR_Trial[idx,"umol.L.sec"]  <- df$umol.L.sec
+  RespoR_Trial[idx,"light_level"] <- df$light_level
+  RespoR_Trial[idx,"light_value"] <- df$light_value
+  RespoR_Trial[idx,"run_block"]   <- df$run_block
   
 }  
 
@@ -258,12 +258,12 @@ for(i in 1:length(filenames_final)) { # loop each raw file?
 
 #export raw data and read back in as a failsafe 
 #this allows me to not have to run the for loop again !!!!!
-write_csv(RespoR, here("Data","Respo_Files","PI","Respo_Algae_R.csv"))  
+write_csv(RespoR_Trial, here("Data","Respo_Files","Trials", "Trial_PI","Respo_AlgaeTrial_R.csv"))  
 
 ##### 
 
-RespoR <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_R.csv"), show_col_types = FALSE) #%>%
-#select(file_id_csv, light_level, intercept, umol.L.sec, temp_c) %>%
+RespoR_Trial <- read_csv(here("Data","Respo_Files","Trials", "Trial_PI","Respo_AlgaeTrial_R.csv"), show_col_types = FALSE) #%>%
+#dplyr::select(file_id_csv, light_level, intercept, umol.L.sec, temp_c) %>%
 #mutate(light_level = as.integer(light_level))
 
 
@@ -272,9 +272,9 @@ RespoR <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_R.csv"), show_col
 ######### Calculate Respiration rate ###############
 
 #avoid duplicated columns after join (run_block/light_value already exist in RespoR)
-RespoR2 <- RespoR %>%
+RespoR2_Trial <- RespoR_Trial %>%
   mutate(light_level = as.integer(light_level)) %>% 
-  left_join(Sample_Info) %>% #mutate(light_level = as.integer(light_level)),
+  left_join(Sample_Info_Trial) %>% #mutate(light_level = as.integer(light_level)),
   #by = c("file_id_csv", "light_level")) %>%
   mutate(Ch.Volume.mL = volume_mL,
          Ch.Volume.L  = Ch.Volume.mL * 0.001,
@@ -287,12 +287,12 @@ RespoR2 <- RespoR %>%
 
 ####### Normalize the respo rates to the blanks ########
 
-blank_rates <-RespoR2 %>% # compute blank rates first then left join instead here
+blank_rates_trial <-RespoR2_Trial %>% # compute blank rates first then left join instead here
   filter(blank == 1) %>% # grab the blanks
   group_by(light_level, run_block, light_dark) %>%
   summarise(blank.rate = mean(umol.sec, na.rm = TRUE))
 
-RespoR_Normalized <- RespoR2 %>% 
+RespoR_Normalized_Trial <- RespoR2_Trial %>% 
   #dplyr::select(blank.rate = umol.sec) %>% ## rename the blank column 
   #summarise(blank.rate = mean(umol.sec, na.rm = TRUE)) %>% # if you have multiple blanks per run take the average
   #ungroup() %>% 
@@ -300,18 +300,18 @@ RespoR_Normalized <- RespoR2 %>%
   #right_join(RespoR2) %>% # join blanks with the respo data
   
   # filter out all bad samples
-  filter(!(sample_id == "AV02_PI_RUN1"),
-         !(sample_id == "AV03_PI_RUN1" & light_level == 3),
-         !(sample_id == "AV05_PI_RUN3"),
-         !(sample_id == "DA01_PI_RUN1" & light_level == 5),
-         !(sample_id == "DA02_PI_RUN3"),
-         !(sample_id == "GS02_PI_RUN1"),
-         !(sample_id == "HD02_PI_RUN3" & light_level == 5),
-         !(sample_id == "SF05_PI_RUN3" & light_level == 3 & light_level == 4)) %>% 
+  filter(!(sample_id == "AV02T_TPI_RUN1"),
+         !(sample_id == "AV03T_TPI_RUN1" & light_level == 3),
+         !(sample_id == "AV05T_TPI_RUN3"),
+         !(sample_id == "DA01T_TPI_RUN1" & light_level == 5),
+         !(sample_id == "DA02T_TPI_RUN3"),
+         !(sample_id == "GS02T_TPI_RUN1"),
+         !(sample_id == "HD02T_TPI_RUN3" & light_level == 5),
+         !(sample_id == "SF05T_TPI_RUN3" & light_level == 3 & light_level == 4)) %>% 
   
   # join blank rates back onto ALL data, then correct, then normalize by wet weight
   filter(blank != 1) %>%  # remove blank rows from the "sample" dataset, # remove the Blank data
-  left_join(blank_rates, by = c("light_level", "run_block", "light_dark")) %>% 
+  left_join(blank_rates_trial, by = c("light_level", "run_block", "light_dark")) %>% 
   mutate(umol.sec.corr   = umol.sec - blank.rate, # subtract the blank rates from the raw rates
          umol.g.hr = (umol.sec.corr * 3600) / wetweight_g,
          umol.g.hr_uncorr= (umol.sec * 3600) / wetweight_g) %>%
@@ -336,17 +336,17 @@ RespoR_Normalized <- RespoR2 %>%
 
 
 #### making a df for just blank data for future use in plots #### 
-Blank_only <- RespoR2 %>% 
+Blank_only_trial <- RespoR2_Trial %>% 
   filter(blank == 1) %>% # grab the blanks
   group_by(light_level, light_value, run_block, light_dark) %>%
   #dplyr::select(blank.rate = umol.sec) %>% ## rename the blank column 
   summarise(blank.rate = mean(umol.sec, na.rm = TRUE))
 
-write_csv(RespoR_Normalized , here("Data","Respo_Files","PI","Respo_Algae_RNormalized_AllPIRates.csv"))  
+write_csv(RespoR_Normalized_Trial, here("Data","Respo_Files","Trials", "Trial_PI","Respo_AlgaeTrial_RNormalized_AllPIRates.csv"))  
 
 
 ## Plot the blanks across treatments to make sure nothing is funky
-Blank_only %>%
+Blank_only_trial %>%
   ggplot(aes(x = light_value, blank.rate, group = interaction(run_block, light_dark))) +
   geom_point() +
   geom_line() +
@@ -361,7 +361,7 @@ Blank_only %>%
 
 
 # one label per line, take the max light point for each algae_id within each species
-line_labels <- RespoR_Normalized %>%
+line_labels <- RespoR_Normalized_Trial %>%
   group_by(species, algae_id) %>%
   slice_max(light_value, n = 1, with_ties = FALSE) %>% # add label to each id
   ungroup()
@@ -375,7 +375,7 @@ species_pal <- c(av  = "#1B9E77",  # green
                  sf  = "#380000",  # red
                  da  = "#8C510A")  # brown
 
-algae_basic_PI_plot <- RespoR_Normalized %>%
+algae_basic_TPI_plot <- RespoR_Normalized_Trial %>%
   ggplot(aes(x = light_value, y = umol.g.hr, color = species, group = algae_id)) +
   geom_point() +
   geom_line() +
@@ -384,7 +384,7 @@ algae_basic_PI_plot <- RespoR_Normalized %>%
   scale_color_manual(values = species_pal, drop = FALSE) +
   facet_wrap(~species, scales = "free_y")
 
-ggsave(here("Output","PI","Algae_Basic_PI_plot.pdf"), algae_basic_PI_plot, width = 8,
+ggsave(here("Output","Trial_PI","Algae_Basic_TPI_plot.pdf"), algae_basic_TPI_plot, width = 8,
        height = 8)
 
 ### run an nls model for PI curve and extract Ik for each species ###
@@ -393,39 +393,39 @@ ggsave(here("Output","PI","Algae_Basic_PI_plot.pdf"), algae_basic_PI_plot, width
 ##### Nonlinear Least Squares regression of a non-rectangular hyperbola (Marshall & Biscoe, 1980)
 
 #Plot curves
-av_resp <- RespoR_Normalized %>% filter(species == "av")
-as_resp <- RespoR_Normalized %>% filter(species == "as")
-gs_resp <- RespoR_Normalized %>% filter(species == "gs")
-cs_resp <- RespoR_Normalized %>% filter(species == "cs")
-sf_resp <- RespoR_Normalized %>% filter(species == "sf")
-da_resp <- RespoR_Normalized %>% filter(species == "da")
+av_resp_trial <- RespoR_Normalized_Trial %>% filter(species == "av")
+as_resp_trial <- RespoR_Normalized_Trial %>% filter(species == "as")
+gs_resp_trial <- RespoR_Normalized_Trial %>% filter(species == "gs")
+cs_resp_trial <- RespoR_Normalized_Trial %>% filter(species == "cs")
+sf_resp_trial <- RespoR_Normalized_Trial %>% filter(species == "sf")
+da_resp_trial <- RespoR_Normalized_Trial %>% filter(species == "da")
 
 #algae.data <- read.table("Data/Respo_Files/PI/Respo_Algae_RNormalized_AllPIRates.csv", header=TRUE, sep=",")
 
 # means and se for each species
-av.mean <- aggregate(umol.g.hr ~ light_value, data = av_resp, FUN=mean)
-av.se <- aggregate(umol.g.hr ~ light_value, data = av_resp, FUN=std.error)
+av.mean <- aggregate(umol.g.hr ~ light_value, data = av_resp_trial, FUN=mean)
+av.se <- aggregate(umol.g.hr ~ light_value, data = av_resp_trial, FUN=std.error)
 
-as.mean <- aggregate(umol.g.hr ~ light_value, data = as_resp, FUN=mean)
-as.se <- aggregate(umol.g.hr ~ light_value, data = as_resp, FUN=std.error)
+as.mean <- aggregate(umol.g.hr ~ light_value, data = as_resp_trial, FUN=mean)
+as.se <- aggregate(umol.g.hr ~ light_value, data = as_resp_trial, FUN=std.error)
 
-gs.mean <- aggregate(umol.g.hr ~ light_value, data = gs_resp, FUN=mean)
-gs.se <- aggregate(umol.g.hr ~ light_value, data = gs_resp, FUN=std.error)
+gs.mean <- aggregate(umol.g.hr ~ light_value, data = gs_resp_trial, FUN=mean)
+gs.se <- aggregate(umol.g.hr ~ light_value, data = gs_resp_trial, FUN=std.error)
 
-cs.mean <- aggregate(umol.g.hr ~ light_value, data = cs_resp, FUN=mean)
-cs.se <- aggregate(umol.g.hr ~ light_value, data = cs_resp, FUN=std.error)
+cs.mean <- aggregate(umol.g.hr ~ light_value, data = cs_resp_trial, FUN=mean)
+cs.se <- aggregate(umol.g.hr ~ light_value, data = cs_resp_trial, FUN=std.error)
 
-sf.mean <- aggregate(umol.g.hr ~ light_value, data = sf_resp, FUN=mean)
-sf.se <- aggregate(umol.g.hr ~ light_value, data = sf_resp, FUN=std.error)
+sf.mean <- aggregate(umol.g.hr ~ light_value, data = sf_resp_trial, FUN=mean)
+sf.se <- aggregate(umol.g.hr ~ light_value, data = sf_resp_trial, FUN=std.error)
 
-da.mean <- aggregate(umol.g.hr ~ light_value, data = da_resp, FUN=mean)
-da.se <- aggregate(umol.g.hr ~ light_value, data = da_resp, FUN=std.error)
+da.mean <- aggregate(umol.g.hr ~ light_value, data = da_resp_trial, FUN=mean)
+da.se <- aggregate(umol.g.hr ~ light_value, data = da_resp_trial, FUN=std.error)
 
 
 ### av Data ###
 PAR <- as.numeric(av.mean$light_value) #PAR = irradiance values
 Pc <- as.numeric(av.mean$umol.g.hr) #Pc = metabolic rates
-pdf(here("Output", "PI", "av_PI_curve.pdf"), width = 7, height = 5)
+pdf(here("Output", "Trial_PI", "av_TPI_curve.pdf"), width = 7, height = 5)
 plot(PAR,Pc,xlab="", ylab="", xlim=c(0,max(PAR)), ylim=c(min(Pc) * 1.1, max(Pc) * 1.1), 
      cex.lab=0.8,cex.axis=0.8,cex=1, main="Avrainvillea lacerata", font.main = 3, adj = 0.05) #set plot info
 abline(v = 369.02563713, col = "#06402B", lty = 2, lwd = 2) #green dashed line at Ik value
@@ -469,9 +469,9 @@ Ic <- Rd/AQY
 Pmax.net <- Pmax.gross - Rd
 
 #output parameters into a table
-av.PI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
-row.names(av.PI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
-print(av.PI.Output)
+av.TPI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
+row.names(av.TPI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
+print(av.TPI.Output)
 
 #Data for av
 # Pg.max   7.11017429
@@ -487,7 +487,7 @@ print(av.PI.Output)
 #### as Data #####
 PAR <- as.numeric(as.mean$light_value) #PAR = irradiance values
 Pc <- as.numeric(as.mean$umol.g.hr) #Pc = metabolic rates
-pdf(here("Output", "PI", "as_PI_curve.pdf"), width = 7, height = 5)
+pdf(here("Output", "Trial_PI", "as_TPI_curve.pdf"), width = 7, height = 5)
 plot(PAR,Pc,xlab="", ylab="", xlim=c(0,max(PAR)), ylim=c(min(Pc) * 1.1, max(Pc) * 1.1), 
      cex.lab=0.8,cex.axis=0.8,cex=1, main="Acanthophora spicifera", font.main = 3, adj = 0.05) #set plot info
 abline(v = 519.35793869, col = "red", lty = 2, lwd = 2) #Red dashed line at Ik value
@@ -517,9 +517,9 @@ Ic <- Rd/AQY # Ic light compensation point
 Pmax.net <- Pmax.gross - Rd # Net photosynthetic rates
 
 #output parameters into a table
-as.PI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
-row.names(as.PI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
-print(as.PI.Output)
+as.TPI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
+row.names(as.TPI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
+print(as.TPI.Output)
 
 #Data for as
 # Pg.max  33.61612753
@@ -532,7 +532,7 @@ print(as.PI.Output)
 #### gs Data #####
 PAR <- as.numeric(gs.mean$light_value) #PAR = irradiance values
 Pc <- as.numeric(gs.mean$umol.g.hr) #Pc = metabolic rates
-pdf(here("Output", "PI", "gs_PI_curve.pdf"), width = 7, height = 5)
+pdf(here("Output", "Trial_PI", "gs_TPI_curve.pdf"), width = 7, height = 5)
 plot(PAR,Pc,xlab="", ylab="", xlim=c(0,max(PAR)), ylim=c(min(Pc) * 1.1, max(Pc) * 1.1), 
      cex.lab=0.8,cex.axis=0.8,cex=1, main="Gracilaria salicornia", font.main = 3, adj = 0.05) #set plot info
 abline(v = 416.83242652, col = "#FFBF00", lty = 2, lwd = 2) #yellow dashed line at Ik value
@@ -562,9 +562,9 @@ Ic <- Rd/AQY # Ic light compensation point
 Pmax.net <- Pmax.gross - Rd # Net photosynthetic rates
 
 #output parameters into a table
-gs.PI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
-row.names(gs.PI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
-print(gs.PI.Output)
+gs.TPI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
+row.names(gs.TPI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
+print(gs.TPI.Output)
 
 #Data for gs
 # Pg.max  12.49767214
@@ -579,7 +579,7 @@ print(gs.PI.Output)
 #### cs Data #####
 PAR <- as.numeric(cs.mean$light_value) #PAR = irradiance values
 Pc <- as.numeric(cs.mean$umol.g.hr) #Pc = metabolic rates
-pdf(here("Output", "PI", "cs_PI_curve.pdf"), width = 7, height = 5)
+pdf(here("Output", "Trial_PI", "cs_TPI_curve.pdf"), width = 7, height = 5)
 plot(PAR,Pc,xlab="", ylab="", xlim=c(0,max(PAR)), ylim=c(min(Pc) * 1.1, max(Pc) * 1.1), 
      cex.lab=0.8,cex.axis=0.8,cex=1, main="Caulerpa sertularioides", font.main = 3, adj = 0.05) #set plot info
 abline(v = 245.2334301, col = "#32CD32", lty = 2, lwd = 2) #light green dashed line at Ik value
@@ -609,9 +609,9 @@ Ic <- Rd/AQY # Ic light compensation point
 Pmax.net <- Pmax.gross - Rd # Net photosynthetic rates
 
 #output parameters into a table
-cs.PI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
-row.names(cs.PI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
-print(cs.PI.Output)
+cs.TPI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
+row.names(cs.TPI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
+print(cs.TPI.Output)
 
 #Data for cs
 # Pg.max  39.5763171
@@ -625,7 +625,7 @@ print(cs.PI.Output)
 #### sf Data #####
 PAR <- as.numeric(sf.mean$light_value) #PAR = irradiance values
 Pc <- as.numeric(sf.mean$umol.g.hr) #Pc = metabolic rates
-pdf(here("Output", "PI", "sf_PI_curve.pdf"), width = 7, height = 5)
+pdf(here("Output", "Trial_PI", "sf_TPI_curve.pdf"), width = 7, height = 5)
 plot(PAR,Pc,xlab="", ylab="", xlim=c(0,max(PAR)), ylim=c(min(Pc) * 1.1, max(Pc) * 1.1), 
      cex.lab=0.8,cex.axis=0.8,cex=1, main="Spyridia filamentosa", font.main = 3, adj = 0.05) #set plot info
 abline(v = 356.2966178, col = "#950606", lty = 2, lwd = 2) #yellow dashed line at Ik value
@@ -658,9 +658,9 @@ Ic <- Rd/AQY # Ic light compensation point
 Pmax.net <- Pmax.gross - Rd # Net photosynthetic rates
 
 #output parameters into a table
-sf.PI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
-row.names(sf.PI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
-print(sf.PI.Output)
+sf.TPI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
+row.names(sf.TPI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
+print(sf.TPI.Output)
 
 #Data for sf
 # Pg.max  28.0200573
@@ -675,7 +675,7 @@ print(sf.PI.Output)
 #### da Data #####
 PAR <- as.numeric(da.mean$light_value) #PAR = irradiance values
 Pc <- as.numeric(da.mean$umol.g.hr) #Pc = metabolic rates
-pdf(here("Output", "PI", "da_PI_curve.pdf"), width = 7, height = 5)
+pdf(here("Output", "Trial_PI", "da_TPI_curve.pdf"), width = 7, height = 5)
 plot(PAR,Pc,xlab="", ylab="", xlim=c(0,max(PAR)), ylim=c(min(Pc) * 1.1, max(Pc) * 1.1), 
      cex.lab=0.8,cex.axis=0.8,cex=1, main="Dictyota acutiloba", font.main = 3, adj = 0.05) #set plot info
 abline(v = 284.1703581, col = "#9B7A01", lty = 2, lwd = 2) #yellow dashed line at Ik value
@@ -705,9 +705,9 @@ Ic <- Rd/AQY # Ic light compensation point
 Pmax.net <- Pmax.gross - Rd # Net photosynthetic rates
 
 #output parameters into a table
-da.PI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
-row.names(da.PI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
-print(da.PI.Output)
+da.TPI.Output <- rbind(Pmax.gross, Pmax.net, -Rd, AQY,Ik,Ic)
+row.names(da.TPI.Output) <- c("Pg.max","Pn.max","Rdark","alpha", "Ik", "Ic")
+print(da.TPI.Output)
 
 #Data for da
 # Pg.max  86.1895094
