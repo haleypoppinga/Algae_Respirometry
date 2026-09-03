@@ -1410,17 +1410,502 @@ beep(sound = 8, expr = NULL)
 
 
 
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+################### old code to run forloop of models on all species ###########
+# Code from 2026-08-10 run with two different models using a for loop instead of above
+# insert after aggregate code
+
+# starting values for each species
+PI_settings <- tibble(
+  species = c("av", "as", "gs", "cs", "sf", "da", "ds", "dc", "hd"),
+  species_names = c(
+    av = "Avrainvillea lacerata",
+    as = "Acanthophora spicifera",
+    gs = "Gracilaria salicornia",
+    cs = "Caulerpa sertularioides",
+    sf = "Spyridia filamentosa",
+    da = "Dictyota acutiloba",
+    ds = "Dictyota sandvicensis",
+    dc = "Dictyosphaeria cavernosa",
+    hd = "Halimeda discoidea"),
+  
+  # starting slope value 
+  AQY_start = c( 
+    0.004,  # av (good)
+    0.014,  # as (good)
+    0.020,  # gs (good)
+    0.025,  # cs (good)
+    0.020,  # sf (showing inhibition, cant fit)
+    0.070,  # da (showing inhibition, cant fit)
+    0.020,  # ds (good)
+    0.010,  # dc (good)
+    0.004), # hd (good)
+  
+  # theta values closer to 1 make transition toward saturation sharper, lower values more rounded
+  theta_start = c( 
+    0.90,   # av (good)
+    0.95,   # as (good)
+    0.90,   # gs (good)
+    0.90,   # cs (good)
+    0.60,   # sf (showing inhibition, cant fit
+    0.60,   # da (showing inhibition, cant fit)
+    0.90,   # ds (good)
+    0.90,   # dc (good)
+    0.90))  # hd (good)
+
+# empty list to store output parameters
+PI_outputs <- list()
+
+#for loop to plot curves for all species
+
+for(i in 1:nrow(PI_settings)) {
+  
+  # get species and its starting values
+  sp <- PI_settings$species[i]
+  sp_name <- PI_settings$species_names[i]
+  AQY_start <- PI_settings$AQY_start[i]
+  theta_start <- PI_settings$theta_start[i]
+  
+  cat("\nFitting species:", sp, "\n")
+  
+  
+  #### subset this species ####
+  sp_resp <- RespoR_Normalized %>%
+    filter(species == sp)
+  
+  
+  #### calculate mean rate at each light value ####
+  sp_mean <- aggregate(
+    umol.g.hr ~ light_value,
+    data = sp_resp,
+    FUN = mean
+  )
+  
+  
+  #### set PAR and Pc ####
+  PAR <- as.numeric(sp_mean$light_value)
+  Pc <- as.numeric(sp_mean$umol.g.hr)
+  
+  
+  #### fit PI model ####
+  curve.nlslrc <- tryCatch(
+    
+    nls(Pc ~ (1/(2*theta)) *
+          (AQY*PAR + Am -
+             sqrt((AQY*PAR + Am)^2 -
+                    4*AQY*theta*Am*PAR)) - Rd,
+        start = list(
+          Am = max(Pc),
+          AQY = AQY_start,
+          Rd = abs(min(Pc)),
+          theta = theta_start)),
+    
+    error = function(e) {
+      message("MODEL FAILED FOR ", sp, ": ", e$message)
+      return(NULL)
+    }
+  )
+  
+  
+  #### if model failed, skip to next species ####
+  if(is.null(curve.nlslrc)) {
+    next
+  }
+  
+  
+  #### extract model coefficients ####
+  my.fit <- summary(curve.nlslrc)
+  coef_fit <- coef(curve.nlslrc)
+  
+  Pmax.gross <- my.fit$parameters["Am", "Estimate"]
+  AQY <- my.fit$parameters["AQY", "Estimate"]
+  Rd <- my.fit$parameters["Rd", "Estimate"]
+  theta <- my.fit$parameters["theta", "Estimate"]
+  
+  Ik <- Pmax.gross / AQY
+  Ic <- Rd / AQY
+  Pmax.net <- Pmax.gross - Rd
+  
+  
+  # save parameters 
+  PI_outputs[[sp]] <- tibble(
+    species = sp,
+    Pg.max = Pmax.gross,
+    Pn.max = Pmax.net,
+    Rdark = -Rd,
+    alpha = AQY,
+    theta = theta,
+    Ik = Ik,
+    Ic = Ic)
+  
+  
+  # make PDF plot
+  pdf(here("Output", "PI", paste0(sp, "_PI_curve.pdf")),
+      width = 7,height = 5)
+  
+  plot(PAR, Pc, xlab = "", ylab = "",
+       xlim = c(0, max(PAR)), ylim = c(min(Pc) * 1.1, max(Pc) * 1.1),
+       cex.lab = 0.8, cex.axis = 0.8, cex = 1,
+       main = sp_name, font.main = 3, adj = 0.05)
+  
+  # fitted curve
+  curve(
+    (1/(2*coef_fit["theta"])) *
+      (coef_fit["AQY"]*x + coef_fit["Am"] -
+         sqrt((coef_fit["AQY"]*x + coef_fit["Am"])^2 -
+                4*coef_fit["AQY"]*
+                coef_fit["theta"]*
+                coef_fit["Am"]*x)) - coef_fit["Rd"],
+    from = 0, to = max(PAR), lwd = 2, col = species_pal[sp], add = TRUE)
+  
+  # Ik line
+  abline(v = Ik, col = species_pal[sp], lty = 2, lwd = 2)
+  
+  text(x = Ik + 75, y = 0, labels = paste0("Ik = ", round(Ik)))
+  
+  mtext(expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
+        side = 1, line = 3.3, cex = 1)
+  mtext(expression(Rate*" ("*mu*"mol "*O[2]*" "*g^-1*h^-1*")"),
+        side = 2, line = 2, cex = 1)
+  
+  dev.off()
+}
+
+# results combined into one table
+PI_results <- bind_rows(PI_outputs)
+print(PI_results, digits = 7)
+
+#species Pg.max Pn.max  Rdark  alpha theta    Ik    Ic
+#<chr>    <dbl>  <dbl>  <dbl>  <dbl> <dbl> <dbl> <dbl>
+#1 av        4.07   2.89 -1.18  0.0111 0.906  367. 107. 
+#2 as       24.1   20.5  -3.53  0.0417 0.975  578.  84.8
+#3 gs       11.5    9.72 -1.79  0.0233 0.886  495.  76.8
+#4 cs       33.9   28.7  -5.25  0.112  0.738  302.  46.8
+#5 ds       45.6   39.2  -6.34  0.160  0.942  285.  39.6
+#6 dc        6.10   5.11 -0.984 0.0220 0.872  277.  44.8
+#7 hd        6.82   5.97 -0.848 0.0130 0.989  523.  65.0
+
+#beep(sound = 8, expr = NULL)
 
 
 
+#### sf photoinhibition model ####
+# Platt, Gallegos & Harrison (1980) photoinhibition model
+# specifically developed to describe PI curves from the initial light-limited increase through the photoinhibited range
+# Platt formulation is P=Ps(1−e^(−αI/Ps))e^−βI/P --> 2nd exponential allows curve to turn downward
+
+#Jasby Platt? compare AIC (lowest AIC is best fit), calculate Ik
+
+#Ps     = photosynthetic capacity parameter
+#alpha  = initial low-light slope (your AQY-type parameter)
+#beta   = photoinhibition parameter
+#Rd     = dark respiration
+
+PAR <- as.numeric(sf.mean$light_value)
+Pc  <- as.numeric(sf.mean$umol.g.hr)
+
+sf_dat <- data.frame(PAR, Pc)
+
+# rough values from the data to define reasonable search ranges
+Rd_guess <- abs(Pc[which.min(PAR)])
+Ps_guess <- max(Pc) + Rd_guess
+
+curve.sf <- nls.multstart::nls_multstart(
+  Pc ~ Ps *  (1 - exp(-alpha * PAR / Ps)) *exp(-beta * PAR / Ps) - Rd,
+  data = sf_dat, iter = 500,
+  start_lower = c(Ps    = Ps_guess * 0.5,
+                  alpha = 0.001,beta  = 0.0001, Rd= Rd_guess * 0.5),
+  start_upper = c(Ps    = Ps_guess * 3,
+                  alpha = 0.5, beta  = 0.5, Rd = Rd_guess * 2),
+  lower = c(Ps = 0, alpha = 0,beta  = 0,Rd    = 0),
+  supp_errors = "Y")
+
+summary(curve.sf)
+coef(curve.sf)
+coef_sf <- coef(curve.sf)
+
+pdf(here("Output", "PI", "sf_PI_curve_photoinhibition.pdf"),
+    width = 7,height = 5)
+
+plot(PAR, Pc, xlab = "",ylab = "", 
+     xlim = c(0, 900), ylim = c(min(Pc) * 1.1, max(Pc) * 1.1),
+     main = "Spyridia filamentosa", font.main = 3,adj = 0.05)
+
+curve(coef_sf["Ps"] * (1 - exp(-coef_sf["alpha"] * x / coef_sf["Ps"])) *
+        exp(-coef_sf["beta"] * x / coef_sf["Ps"]) -coef_sf["Rd"],
+      from = 0,to = 900,lwd = 2,col = species_pal["sf"],add = TRUE)
+
+mtext(expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
+      side = 1, line = 3.3)
+mtext(expression(Rate*" ("*mu*"mol "*O[2]*" "*g^-1*h^-1*")"),side = 2, line = 2)
+dev.off()
 
 
+#### da photoinhibition model ####
+# Platt, Gallegos & Harrison (1980) photoinhibition model
+# specifically developed to describe PI curves from the initial light-limited increase through the photoinhibited range
+# Platt formulation is P=Ps(1−e^(−αI/Ps))e^−βI/P --> 2nd exponential allows curve to turn downward
+
+#Ps     = photosynthetic capacity parameter
+#alpha  = initial low-light slope (your AQY-type parameter)
+#beta   = photoinhibition parameter
+#Rd     = dark respiration
+
+PAR <- as.numeric(da.mean$light_value)
+Pc  <- as.numeric(da.mean$umol.g.hr)
+
+da_dat <- data.frame(PAR, Pc)
+
+# rough values from the data to define reasonable search ranges
+Rd_guess <- abs(Pc[which.min(PAR)])
+Ps_guess <- max(Pc) + Rd_guess
+
+curve.da <- nls.multstart::nls_multstart(
+  Pc ~ Ps *  (1 - exp(-alpha * PAR / Ps)) *exp(-beta * PAR / Ps) - Rd,
+  data = da_dat, iter = 500,
+  start_lower = c(Ps    = Ps_guess * 0.5,
+                  alpha = 0.001,beta  = 0.0001, Rd= Rd_guess * 0.5),
+  start_upper = c(Ps    = Ps_guess * 3,
+                  alpha = 0.5, beta  = 0.5, Rd = Rd_guess * 2),
+  lower = c(Ps = 0, alpha = 0,beta  = 0,Rd    = 0),
+  supp_errors = "Y")
+
+summary(curve.da)
+coef(curve.da)
+coef_da <- coef(curve.da)
+
+pdf(here("Output", "PI", "da_PI_curve_photoinhibition.pdf"),
+    width = 7,height = 5)
+
+plot(PAR, Pc, xlab = "",ylab = "", 
+     xlim = c(0, 900), ylim = c(min(Pc) * 1.1, max(Pc) * 1.1),
+     main = "Dictyota acutiloba", font.main = 3,adj = 0.05)
+
+curve(coef_da["Ps"] * (1 - exp(-coef_da["alpha"] * x / coef_da["Ps"])) *
+        exp(-coef_da["beta"] * x / coef_da["Ps"]) -coef_da["Rd"],
+      from = 0,to = 900,lwd = 2,col = species_pal["da"],add = TRUE)
+
+mtext(expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
+      side = 1, line = 3.3)
+mtext(expression(Rate*" ("*mu*"mol "*O[2]*" "*g^-1*h^-1*")"),side = 2, line = 2)
+dev.off()
 
 
+###############################################################################
+###############################################################################
+###############################################################################
+########## same code as above but slightly updated incase i need to go back###
+#Plot curves
+#algae.data <- read.table("Data/Respo_Files/PI/Respo_Algae_RNormalized_AllPIRates.csv", header=TRUE, sep=",")
+
+# means and se for each species inshore and offshore for each light level
+PI_summary <- RespoR_Normalized |> 
+  filter(!is.na(zone)) |> #filter inshore/offshore
+  group_by(species, full_species, zone, light_level) |>  
+  summarise(light_value = mean(light_value, na.rm = TRUE),
+            mean_rate = mean(umol.g.hr, na.rm = TRUE), #calc mean rates
+            n = sum(!is.na(umol.g.hr)),
+            se_rate = sd(umol.g.hr, na.rm = TRUE) / sqrt(n), #error
+            n_individuals = n_distinct(algae_id),
+            .groups = "drop")
+
+# diagnostic plot
+PI_summary |> 
+  ggplot(aes(x = light_value, y = mean_rate, color = zone, group = zone)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean_rate - se_rate, ymax = mean_rate + se_rate),
+                width = 10) +
+  facet_wrap(~species, scales = "free_y") +
+  scale_x_continuous(breaks = seq(0, 900, by = 100)) +
+  labs(x = expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Rate ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")"), color = "Zone") +
+  theme_bw()
+
+#shows mean response of all individuals within a species × zone at each experimental light step
 
 
+#### organize data for individual PI curve fitting
+PI_individual <- RespoR_Normalized |>
+  filter(!is.na(zone)) |>
+  select(species, full_species, zone, algae_id, light_level, light_value, umol.g.hr) |>
+  arrange(species, zone, algae_id, light_value)
+
+# diagnostic plot of the actual individual curves
+PI_individual |>
+  ggplot(aes(x = light_value, y = umol.g.hr, group = algae_id, color = zone)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~species, scales = "free_y") +
+  scale_x_continuous(breaks = seq(0, 900, by = 100)) +
+  labs(x = expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Rate ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")"), color = "Zone") +
+  theme_bw()
 
 
+# starting values for each species
+PI_settings <- tibble(species = c("av", "as", "gs", "cs", "sf", "da", "ds", "dc", "hd"),
+                      species_names = c(
+                        av = "Avrainvillea lacerata",
+                        as = "Acanthophora spicifera",
+                        gs = "Gracilaria salicornia",
+                        cs = "Caulerpa sertularioides",
+                        sf = "Spyridia filamentosa",
+                        da = "Dictyota acutiloba",
+                        ds = "Dictyota sandvicensis",
+                        dc = "Dictyosphaeria cavernosa",
+                        hd = "Halimeda discoidea"),
+                      
+                      # starting slope value           
+                      AQY_start = c(
+                        0.004,  # av (good)
+                        0.014,  # as (good)
+                        0.020,  # gs (good)
+                        0.025,  # cs (good)
+                        0.020,  # sf (showing inhibition, cant fit)
+                        0.070,  # da (showing inhibition, cant fit)
+                        0.020,  # ds (good)
+                        0.010,  # dc (good)
+                        0.004), # hd (good)
+                      
+                      # theta values closer to 1 make transition toward saturation sharper, lower values more rounded
+                      theta_start = c( 
+                        0.90,   # av (good)
+                        0.95,   # as (good)
+                        0.90,   # gs (good)
+                        0.90,   # cs (good)
+                        0.60,   # sf (showing inhibition, cant fit
+                        0.60,   # da (showing inhibition, cant fit)
+                        0.90,   # ds (good)
+                        0.90,   # dc (good)
+                        0.90))  # hd (good)
+
+# empty list to store output parameters
+PI_outputs <- list()
+
+
+#for loop to plot curves for all species
+for(i in 1:nrow(PI_settings)) {
+  
+  # get species and its starting values
+  sp <- PI_settings$species[i]
+  sp_name <- PI_settings$species_names[i]
+  AQY_start <- PI_settings$AQY_start[i]
+  theta_start <- PI_settings$theta_start[i]
+  
+  cat("\nFitting species:", sp, "\n")
+  
+  
+  # subset this species
+  sp_resp <- RespoR_Normalized %>%
+    filter(species == sp)
+  
+  
+  # calculate mean rate at each light value
+  #sp_mean <- aggregate(umol.g.hr ~ light_value, data = sp_resp, FUN = mean)
+  sp_mean<- sp_resp |> 
+    group_by(light_value) |># group all measurments with the same irradiance
+    summarise(umol.g.hr = mean(umol.g.hr, na.rm = TRUE), # calculate mean metabolic rate
+              .groups = "drop")
+  
+  
+  # set PAR and Pc
+  PAR <- as.numeric(sp_mean$light_value) # PAR = irradiance values
+  Pc <- as.numeric(sp_mean$umol.g.hr)  # Pc = metabolic rates
+  
+  
+  # fit PI model (Marshall & Biscoe 1980)
+  # fit a model using a Nonlinear Least Squares regression of a non-rectangular hyperbola (Marshall & Biscoe, 1980)
+  curve.nlslrc <- tryCatch(
+    nls(Pc ~ (1/(2*theta)) *(AQY*PAR + Am - sqrt((AQY*PAR + Am)^2 - 4*AQY*theta*Am*PAR)) - Rd,
+        start = list(
+          Am = max(Pc), # Am = maximum gross photosynthetic rate
+          AQY = AQY_start, # AQY = apparent quantum yield, or alpha,
+          Rd = abs(min(Pc)), # Rd = dark respiration
+          theta = theta_start)), # theta = curvature parameter
+    
+    error = function(e) {
+      message("MODEL FAILED FOR ", sp, ": ", e$message)
+      return(NULL)
+    }
+  )
+  
+  
+  #### if model failed, skip to next species ####
+  if(is.null(curve.nlslrc)) {
+    next
+  }
+  
+  
+  # extract model coefficients
+  my.fit <- summary(curve.nlslrc)
+  coef_fit <- coef(curve.nlslrc)
+  
+  Pmax.gross <- my.fit$parameters["Am", "Estimate"]
+  AQY <- my.fit$parameters["AQY", "Estimate"]
+  Rd <- my.fit$parameters["Rd", "Estimate"]
+  theta <- my.fit$parameters["theta", "Estimate"]
+  
+  Ik <- Pmax.gross / AQY  
+  Ic <- Rd / AQY
+  Pmax.net <- Pmax.gross - Rd
+  
+  
+  # save parameters 
+  PI_outputs[[sp]] <- tibble(
+    species = sp,
+    Pg.max = Pmax.gross, # Max gross photosytnthetic rate
+    Pn.max = Pmax.net, # Net photosynthetic rates
+    Rdark = -Rd, # dark respiration
+    alpha = AQY, # AQY (apparent quantum yield) alpha, initial slope/AQY
+    theta = theta, # theta (curvature parameter)
+    Ik = Ik, # Ik light saturation point
+    Ic = Ic) # Ic light compensation point
+  
+  
+  # make PDF plot
+  pdf(here("Output", "PI", paste0(sp, "_PI_curve.pdf")),
+      width = 7,height = 5)
+  
+  plot(PAR, Pc, xlab = "", ylab = "",
+       xlim = c(0, max(PAR)), ylim = c(min(Pc) * 1.1, max(Pc) * 1.1),
+       cex.lab = 0.8, cex.axis = 0.8, cex = 1,
+       main = sp_name, font.main = 3, adj = 0.05)
+  
+  # fitted curve
+  curve(
+    (1/(2*coef_fit["theta"])) *
+      (coef_fit["AQY"]*x + coef_fit["Am"] -
+         sqrt((coef_fit["AQY"]*x + coef_fit["Am"])^2 -
+                4*coef_fit["AQY"]*
+                coef_fit["theta"]*
+                coef_fit["Am"]*x)) - coef_fit["Rd"],
+    from = 0, to = max(PAR), lwd = 2, col = species_pal[sp], add = TRUE)
+  
+  # Ik line
+  abline(v = Ik, col = species_pal[sp], lty = 2, lwd = 2)
+  
+  text(x = Ik + 75, y = 0, labels = paste0("Ik = ", round(Ik)))
+  
+  mtext(expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
+        side = 1, line = 3.3, cex = 1)
+  mtext(expression(Rate*" ("*mu*"mol "*O[2]*" "*g^-1*h^-1*")"),
+        side = 2, line = 2, cex = 1)
+  
+  dev.off()
+}
+
+# results combined into one table
+PI_results <- bind_rows(PI_outputs)
+print(PI_results, digits = 7)
+
+
+###############################################################################
+###############################################################################
+###############################################################################
 ################### old code to calculate each individually ###################
 ### av Data ###
 PAR <- as.numeric(av.mean$light_value) #PAR = irradiance values
