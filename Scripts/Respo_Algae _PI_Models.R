@@ -1,6 +1,7 @@
 ###### Respo Code for PI Curves ####### 
 ### Created by: Nyssa Silbiger, Maya Powell, Haley Poppinga
-#### Last updated on: 2026-09-14
+#### Last updated on: 2026-10-28
+# old update with ewt weights: 2026-09-14
 
 ############## Introduction to code/script ####################
 # Respiration rate calculation
@@ -19,6 +20,7 @@ if ("tidyverse" %in% rownames(installed.packages()) == 'FALSE') install.packages
 if ("here" %in% rownames(installed.packages()) == 'FALSE') install.packages('here')
 if ("patchwork" %in% rownames(installed.packages()) == 'FALSE') install.packages('patchwork')
 if ("PNWColors" %in% rownames(installed.packages()) == 'FALSE') install.packages('PNWColors')
+if ("ggtext" %in% rownames(installed.packages()) == 'FALSE') install.packages('ggtext')
 
 #Read in required libraries
 ##### Include Versions of libraries
@@ -43,6 +45,7 @@ library(beepr)
 library(nls.multstart)
 library(ggpubr)
 
+options(scipen = 999) # makes it so R displays tables not in scientific notation
 
 ############## Algae PI Analysis ###############
 # Calculate metabolic rates from LoLinR output
@@ -109,14 +112,14 @@ RespoR_Normalized <- RespoR2 %>%
   #dplyr::select(Light_level, run_block, blank.rate, date) %>% # this is what I will use to join the blanks back with the raw data
   right_join(RespoR2) %>% # join blanks with the respo data
   mutate(umol.sec.corr = umol.sec - blank.rate, # subtract the blank rates from the raw rates   
-         umol.g.hr = (umol.sec.corr*3600)/wetweight_g, # change to AFDW when obtained
-         umol.g.hr_uncorr = (umol.sec*3600)/wetweight_g) %>%
+         umol.g.hr = (umol.sec.corr*3600)/afdw_g, # change to AFDW when obtained
+         umol.g.hr_uncorr = (umol.sec*3600)/afdw_g) %>%
   
-  # join blank rates back onto ALL data, then correct, then normalize by wet weight
+  # join blank rates back onto ALL data, then correct, then normalize by afdw weight
   filter(blank!=1) %>% # remove the Blank data
   #ungroup() %>%
   dplyr::select(date,species, full_species, zone, sample_id, algae_id, light_dark,
-                run_block, wetweight_g, chamber_channel, temp_c, light_level, light_value,
+                run_block, afdw_g, chamber_channel, temp_c, light_level, light_value, # change to AFDW when obtained
                 umol.sec,blank.rate, umol.sec.corr, umol.g.hr, umol.g.hr_uncorr) # keep only what we need
 
 #### filter out bad samples here if needed
@@ -140,10 +143,12 @@ write_csv(RespoR_Normalized , here("Data","Respo_Files","PI","Respo_Algae_RNorma
 RespoR_Normalized <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_RNormalized_AllPIRates.csv"))
 
 ## Plot the blanks across treatments to make sure nothing is funky
-Blank_only %>%
+blank_only_plot <- Blank_only %>%
+  ungroup() |> 
   ggplot(aes(x = light_value, blank.rate)) +
   geom_point()
-#ggsave(here("Output","PI","blank_only.pdf"), Blank_only)
+blank_only_plot
+#ggsave(here("Output","PI","blank_only_plot.pdf"), blank_only_plot, width = 10, height = 10)
 
 #  basic plot of rates versus light before you make the real PI curve 
 basic_PI_plot <- RespoR_Normalized %>%
@@ -152,10 +157,10 @@ basic_PI_plot <- RespoR_Normalized %>%
   geom_line()+
   facet_wrap(~species, scales = "free")
 basic_PI_plot
-ggsave(here("Output","PI","basic_PI_plot.pdf"), basic_PI_plot, width = 10, height = 10)
+#ggsave(here("Output","PI","basic_PI_plot.pdf"), basic_PI_plot, width = 10, height = 10)
 
 #set up species colors
-species_pal <- c(av  = "#033500",  # green
+species_palette <- c(av  = "#033500",  # green
                  hd  = "#66A61E",  # green
                  cs  = "#20B2AA",  # green
                  dc  = "#239665",  # green
@@ -165,9 +170,8 @@ species_pal <- c(av  = "#033500",  # green
                  da  = "#A57A54",  # brown
                  ds  = "#A89F51")  # brown
 
-# another asic plot thats maybe nicer
-# one label per line, take the max light point for each algae_id within each species
-line_labels <- RespoR_Normalized %>%
+# another basic plot thats maybe nicer
+line_labels <- RespoR_Normalized %>% # one label per line, take the max light point for each algae_id within each species
   group_by(species, algae_id) %>%
   slice_max(light_value, n = 1, with_ties = FALSE) %>% # add label to each id
   ungroup()
@@ -178,7 +182,7 @@ algae_basic_PI_plot <- RespoR_Normalized %>%
   geom_line() +
   ggrepel::geom_text_repel(data = line_labels, aes(label = algae_id), show.legend = FALSE,
                            size = 3, min.segment.length = 0, segment.color = "black") +
-  scale_color_manual(values = species_pal, drop = FALSE) +
+  scale_color_manual(values = species_palette, drop = FALSE) +
   scale_x_continuous(breaks = seq(0, 900, by = 100)) +
   coord_cartesian(xlim = c(0, 900)) +
   facet_wrap(~species, scales = "free_y")
@@ -215,13 +219,31 @@ nrh_model <- function(light_value, Pmax, AQY, Rd, theta) {
 
 
 ##### MODEL PARAMETERS ######
-#Pmax = "Am" = (max photosynthetic rate) should be positive based on range of umol.cm2.hr - here ~0-2
-#AQY (apparent quantum yield) should be positive and between 0-1 (often much smaller)
-#Rd should be subtracted and usually between -2-0 but can adjust if larger
-#theta is between 0 and 1 
+#Pmax = "Am" = (max photosynthetic rate) 
+    # should be positive based on range of umol.cm2.hr - here ~0-2
+    # fitted maximum gross photosynthetic capacity, can be higher than highest observed net rate 
+         # b/c model estimates gross capacity and then subtracts respiration
+
+#AQY (apparent quantum yield) = alpha
+    # should be positive and between 0-1 (often much smaller)
+    # high alpha -> alga responds strongly to small increases in light)
+    # initial slope of the PI curve at low irradiance
+    # represents photochemical efficiency at low light
+
+#Rd = dark respiration
+    # should be subtracted and usually between -2-0 but can adjust if larger
+    # magnitude of the negative dark metabolic rate
+    # fitted magnitude of dark respiration, the equation ends in - Rd, 
+    # predicted net rate in darkness
+
+#theta = fitted curvature 
+    # is between 0 and 1 
+    # theta controls bend btwn initial light-limited increase & the saturated part of the curve)
+    # closer to 1 --> sharper transition toward saturation (sharp from the low-light rising portion toward saturation)
+    # lower theta --> more rounded transition
 
 
-### make function uded to plot Model 1 curve
+### make function used to plot Model 1 curve
 make_nrh_fun <- function(Pmax, AQY, Rd, theta) {
   force(Pmax); force(AQY); force(Rd); force(theta)
   function(x) nrh_model(x, Pmax, AQY, Rd, theta)
@@ -230,8 +252,8 @@ make_nrh_fun <- function(Pmax, AQY, Rd, theta) {
 # create plot list and a coefficient table list for Model 1
 # lists to save outputs from each individual model fit
 coef_list_Model1 <- list()  # parameter estimates for each individual
-curve_list_Model1 <- list() # smooth fitted curve for each individual
-raw_list_Model1 <- list()   # observed PI points for each individual
+curve_list_Model1 <- list() # smooth fitted curve for each 
+raw_list_Model1 <- list()   # observed PI points for each
 
 # MODEL 1 forloop: to calculate ik and plot
 # fit nrh model to each species x zone population
@@ -353,11 +375,11 @@ Model1_individualcurves_plot <- ggplot() +
   coord_cartesian(xlim = c(0, 1000), clip = "off") + # space after 900
   facet_wrap(vars(species_name, zone), # one panel for each species x zone
              scales = "free_y") +
-  scale_color_manual(values = species_pal) + # species color pallette
+  scale_color_manual(values = species_palette) + # species color pallette
   scale_x_continuous(breaks = seq(0, 900, by = 100)) + # light value breaks
   labs(title = "Model 1: Individual PI Curves",
-       x = expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
-       y = expression("Rate ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
+       x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Photosynthetic Rate ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
   theme_classic() +
   theme(legend.position = "none", strip.text = element_text(face = "italic"))
 
@@ -367,13 +389,16 @@ Model1_individualcurves_plot
 
 
 ############################################################
+############################################################
+############################################################
 
 ###### DEFINE MODEL #######
 
 ### MODEL 2: Platt et al. (1980) Photoinhibition Model ###
 platt_model <- function(light_value, Ps, AQY, beta, Rd) {
-  Ps *(1 - exp(-AQY * light_value / Ps)) *exp(-beta * light_value / Ps) - Rd
-}
+  Ps *(1 - exp(-(AQY*light_value / Ps))) *exp(-(beta * light_value / Ps)) - Rd
+} #exp is the photoinhibition
+
 
 # Another possible model but wont try
 ### MODEL 3: Jassby & Platt (1976) Hyperbolic Tangent ###
@@ -382,13 +407,19 @@ platt_model <- function(light_value, Ps, AQY, beta, Rd) {
 #}
 
 ##### MODEL PARAMETERS ######
-# Ps = photosynthetic scaling parameter
+# Ps = photosynthetic scaling parameter, maximum light-saturated photosynthetic rate 
+# Pmax = fitted maximum photosynthetic rate (aka Pm), actual peak photosynthetic rate
 # AQY = alpha = initial low-light slope
 # beta = photoinhibition parameter
   # beta = 0 little/no photoinhibition
-  # larger beta = stronger high light decline
-# Rd = dark respiration magnitude
+  # larger beta = stronger photoinhibition (high light decline)
+# Rd = dark respiration
 
+# Calculate eventually:
+# Ik = saturation 
+  # Ik = Ps/alpha = Pmax / AQY
+# Iopt = actual fitted irradiance where photosynthesis peaks, PPFD where the curve peaks before photoinhibition decline
+  # if beta = 0, no Iopt b/c no decline, Iopt would be beyond range/approaching infinity
 
 # lists to save outputs from each individual Model 2 fit
 coef_list_Model2 <- list()  # fitted parameters for each individual
@@ -410,7 +441,7 @@ for (i in unique(RespoR_Normalized$algae_id)) {
   cat("\nModel 2:", sp, z, i, "\n") # catenate
 
   # use nls_multstart to fit the photoinhibition curve
-    # nonlinear models where we dont know best starting paramter values
+    # nonlinear models where we dont know best starting parameter values
   curve.platt <- tryCatch(nls_multstart(
       umol.g.hr ~ platt_model(light_value, Ps, AQY, beta, Rd),
       data = data,
@@ -437,11 +468,18 @@ for (i in unique(RespoR_Normalized$algae_id)) {
    # extract fitted coefficients
   coefs <- coef(curve.platt)
   
+  # calculate Pmax value from Platt model
+  Pmax_val <- coefs["Ps"]* (coefs["AQY"] / (coefs["AQY"] + coefs["beta"])) *
+    (coefs["beta"] / (coefs["AQY"] + coefs["beta"])) ^(coefs["beta"] / coefs["AQY"]) # see equation in Platt 1980
+  
+  # calculate Ik
+  Ik_val<- Pmax_val/coefs["AQY"] # Ik = Pmax/AQY
+  
   # calculate Iopt b/c if beta =0, there is no finite photoinhibition optimum
     # so Platt model would go toward a more non-photoinhibited curve
   if(coefs["beta"] > 0.000001) {
     Iopt_val <- (coefs["Ps"] / coefs["AQY"]) *
-      log((coefs["AQY"] + coefs["beta"]) / coefs["beta"])
+      log((coefs["AQY"] + coefs["beta"]) / coefs["beta"]) # Iopt accounts for beta
     
   } else {
     Iopt_val <- NA
@@ -450,14 +488,14 @@ for (i in unique(RespoR_Normalized$algae_id)) {
   coef_print <- coefs |> # make df like before
     t() |>
     as.data.frame() |> 
-    mutate(Iopt = Iopt_val, species = sp, species_name = sp_name, zone = z, algae_id = i,
+    mutate(Pmax = Pmax_val, Ik = Ik_val, Iopt = Iopt_val, species = sp, species_name = sp_name, zone = z, algae_id = i,
            model = "Platt_photoinhibition", AIC = AIC(curve.platt))
   
   coef_list_Model2[[i]] <- coef_print # save Ps, alpha, beta, Rd, Iopt, AIC
  
    # make smooth light sequence for fitted curve
   curve_df <- tibble(light_value = seq(0, 900, by = 5)) |>
-    mutate(pred_rate = platt_model(light_value, Ps = coefs["Ps"], AQY = coefs["AQY"],  
+    mutate(pred_rate = platt_model(light_value, Ps = coefs["Ps"], AQY = coefs["AQY"],  # predicted
                                    beta = coefs["beta"], Rd = coefs["Rd"]),
            species = sp, species_name = sp_name, zone = z, algae_id = i)
   
@@ -501,11 +539,11 @@ Model2_individualcurves_plot <- ggplot() +
   coord_cartesian(xlim = c(0, 1000), clip = "off") + # space after 900
   facet_wrap(vars(species_name, zone), # one panel for each species and zone
              scales = "free_y") +
-  scale_color_manual(values = species_pal) + # species color palette
+  scale_color_manual(values = species_palette) + # species color palette
   scale_x_continuous(breaks = seq(0, 900, by = 100)) + # light value breaks
   labs(title = "Model 2: Individual Photoinhibition PI Curves",
-       x = expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
-       y = expression("Rate ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
+       x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Net Photosynthetic Rate ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
   theme_classic() +
   theme(legend.position = "none", strip.text = element_text(face = "italic"))
 
@@ -514,7 +552,7 @@ Model2_individualcurves_plot
 
 # make a table of model parameters 
 Model2_parameter_table <- Model2_individuals |>
-  select(species, species_name, zone, algae_id, Ps, AQY, beta, Rd, Iopt, AIC) |>
+  select(species, species_name, zone, algae_id, Ps, Pmax, AQY, beta, Rd, Ik, Iopt, AIC) |>
   arrange(species, zone, algae_id)
 
 View(Model2_parameter_table)
@@ -611,7 +649,8 @@ for (i in 1:nrow(PI_populations)) {
   
   coef_list_Model2_pop[[pop_name]] <- tibble(
     species = sp, species_name = sp_name, zone = z, Ps = pop_coefs["Ps"],
-    AQY = pop_coefs["AQY"], beta = pop_coefs["beta"], Rd = pop_coefs["Rd"],Iopt = Iopt_pop, AIC = AIC(fit_pop))
+    AQY = pop_coefs["AQY"], beta = pop_coefs["beta"], Rd = pop_coefs["Rd"], 
+    Ik = pop_coefs["Ps"]/pop_coefs["AQY"], Iopt = Iopt_pop, AIC = AIC(fit_pop))
   
   # make curve
   curve_list_Model2_pop[[pop_name]] <- tibble(
@@ -703,31 +742,38 @@ Model2_bootstrap <- Model2_boot_curves |>
   
 
 # make plot
+Model2_Ik_labels <- Model2_population_results |> # add Ik labels
+  mutate(Ik_label = paste0("Ik = ", round(Ik)))
+
 Model2_population_plot <- ggplot() +
   geom_ribbon(data = Model2_bootstrap,  # 95% bootstrap confidence interval
               aes(x = light_value, ymin = lower, ymax = upper, fill = species), alpha = 0.2) +
   geom_line(data = Model2_population_curve, # actual fitted population Model 2 curve
             aes(x = light_value, y = pred_rate, color = species), linewidth = 1) +
- 
   geom_point(data = PI_summary,  # actual observed population means
              aes(x = light_value, y = mean_rate, color = species), size = 2) +
-  
   geom_errorbar(data = PI_summary, # standard error of observed population means
                 aes(x = light_value, ymin = mean_rate - se_rate, ymax = mean_rate + se_rate, color = species), width = 10) +
-  scale_color_manual(values = species_pal) + # species palette
-  scale_fill_manual(values = species_pal) +
-  facet_wrap(vars(species_name, zone), scales = "free_y") +
+  geom_vline(data = Model2_population_results, # adds Ik dashed line
+             aes(xintercept = Ik, color = species), linetype = 2, linewidth = 0.7, show.legend = FALSE) +
+  geom_text(data = Model2_Ik_labels, # adds Ik label
+            aes(x = Ik, y = -Inf, label = Ik_label, color = species),
+            hjust = -0.1, vjust = -0.8, size = 3, show.legend = FALSE) +
+  scale_color_manual(values = species_palette) + # species palette
+  scale_fill_manual(values = species_palette) +
+  facet_wrap(vars(species_name, zone), scales = "free_y",
+             labeller = labeller(species_name = function(x) paste0("<i>", x, "</i>"),
+                                 zone = function(x) x, .multi_line = TRUE)) +
   scale_x_continuous(breaks = seq(0, 900, by = 100)) +
   labs(title = "Population PI Curves with Bootstrap Confidence Intervals",
        subtitle = "Platt et al. (1980) Photoinhibition Model",
        x = expression("Irradiance ("*mu*"mol photons "*m^-2*s^-1*")"),
        y = expression("Rate ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
   theme_classic() +
-  theme(legend.position = "none", strip.text = element_text(face = "italic"))
-
+  theme(legend.position = "none", strip.text = ggtext::element_markdown(face = "plain"))
 
 Model2_population_plot
-ggsave(here("Output","PI","Model2_population_plot.pdf"), Model2_population_plot, width = 20, height = 12)
+#ggsave(here("Output","PI","Model2_population_plot.pdf"), Model2_population_plot, width = 20, height = 12)
 
 
 
