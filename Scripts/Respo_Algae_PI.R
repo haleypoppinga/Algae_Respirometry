@@ -56,7 +56,7 @@ RespoR <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_R.csv"))
 RespoR_Normalized <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_RNormalized_AllPIRates.csv"))
 
 
-## Species polette
+## Species palette
 # set up species colors
 species_palette <- c(av  = "#033500",  # green algae division
                  hd  = "#66A61E",  # green

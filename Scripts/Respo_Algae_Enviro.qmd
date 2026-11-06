@@ -1,0 +1,382 @@
+---
+title: "Respo Algae Environmental Data"
+author: "Haley Poppinga"
+format: 
+  html:
+    toc: true
+    theme: sandstone
+---
+### Load Libraries  
+
+```{r}
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(here)
+library(dplyr)
+library(ggrepel) # for repelling labels
+library(ggthemes)
+library(lubridate)
+library(cmocean) # colors
+```
+
+### Read Data  
+```{r}
+#| warning: false
+#| message: false
+
+# Read in the data and convert the date
+hobo_path <-here("Data", "Hobo_Files", "HOBO_Temp_Light") # folder with all hobo temp/lux data
+
+hobo_files <- list.files(path = hobo_path, pattern = "\\.csv$",full.names = TRUE,recursive = TRUE) # bring in all of the individual files
+```
+
+### Clean the Data  
+```{r}
+#| warning: false
+#| message: false
+
+HoboData<- function(file) { # create a funciton to edit all the csv files so they are the same
+  df<-read.csv(file) # read csv files
+  columns<-c(grep("^Date", names(df), value = TRUE)[1], # find only 3 columns needed
+             grep("^Temperature", names(df), value = TRUE)[1],
+             grep("^Light", names(df), value = TRUE)[1])
+  if (anyNA(columns)) { # check for NAs
+    stop("Missing column in: ", file)
+  }
+  
+  df<-df |> # clean the data 
+    select(all_of(columns)) |> # only keep date temp lux columns for all files
+    set_names(c("Date_Time", "Temperature_C", "Light_Lux")) |> # rename them b/c names were bad
+    mutate(Date_Time = parse_date_time(Date_Time, # convert date and time using lubridate
+                                       orders = c("mdY HMS", "mdY HM", "Ymd HMS", "Ymd HM"), # convert character strings into POSIXct date time values, formats to recognize
+                                       tz = "Pacific/Honolulu"), # HI time zone (HST)
+           Temperature_C = as.numeric(Temperature_C), # convert to numeric values
+           Light_Lux = as.numeric(Light_Lux),
+           source_file = basename(file)) |>  # create new column to id which csv corresponds to which row
+    filter(Date_Time >= min(Date_Time, na.rm = TRUE) + minutes(30),
+           Date_Time <= max(Date_Time, na.rm = TRUE) - hour(1)) # remove first 30 min and last hourfrom each file because automatic logging may have started during deployment
+  return(df)
+}
+```
+
+#### Read and Clean PAR Data
+```{r}
+#| warning: false
+#| message: false
+
+
+# PAR data to cross-calibrate
+PAR_path<-here("Data","Hobo_Files", "PAR2026")
+
+PARData <- function(file) { # function to clean PAR data
+  df <- read.csv(file)
+  df <- df |>
+    select(Date_Time = starts_with("Date.Time"),
+           Underwater_PAR = starts_with("Underwater.PAR"),
+           Air_PAR = starts_with("In.Air.PAR"), # offshore PAR data doesnt have air par column so needed to do this
+           Temperature_C = starts_with("Temperature"),
+           Tilt_deg = starts_with("Tilt")) |> 
+    #set_names(c("Date_Time","Underwater_PAR","Air_PAR","Temperature_C","Tilt_deg",
+                #"DLI_Underwater","Accumulated_PAR")) |> # rename columns
+    mutate(Date_Time = mdy_hms(Date_Time, tz = "Pacific/Honolulu"), # convert time so its the same as other files
+      across(-Date_Time, ~ parse_number(as.character(.x))))
+  
+  if (!"Air_PAR" %in% names(df)) { # adds Air_PAR column b/c offshore file is missing it, this helps for the calibration code later
+    df$Air_PAR <- NA_real_
+  }
+  
+  return(df)
+}
+```
+
+
+#### Combine the Data  
+```{r}
+#| warning: false
+#| message: false
+
+# Make datasets for all hobo data then separate into inshore data and offshore data only
+HoboData_all<-map_dfr(hobo_files, HoboData) # all csv file data combined
+
+HoboData_in<- HoboData_all |> # Inshore data only
+  filter(str_detect(source_file, "^Hobo_IN")) # only csv files for inshore data
+
+HoboData_off <- HoboData_all |> # Offshore data only
+  filter(str_detect(source_file, "^Hobo_OF"))  # only csv files for offshore data
+
+# do the same for PAR data
+PAR_off_cal<- PARData(here(PAR_path, "PAR_OFF_22491164_cal2.csv")) # Offshore data for calibration in Aug
+```
+
+
+### Convert Lux to PAR  
+*Hobo_OFF_22235022_Aug*  
+* Offshore HOBO at start of transect was used with a PAR logger put out at same time  
+* Excel name: PAR22491164-OFF 2026-08-13 10_01_33 HST (Data HST).xlsx  
+* only one Hobo inshore logger from 24 hour July sampling had data but was not near PAR logger  
+* For calibration, we are using the re-calibration done in August with an offshore Hobo and PAR logger on 2026-08-12  
+```{r}
+#| warning: false
+#| message: false
+
+# filter out just the hobo data used along side PAR deployment
+Light_off<-HoboData_off |>
+  filter(source_file == "Hobo_OFF_22235022_Aug.csv") |> 
+# merge the hobo files with PAR files to calibrate by date/time and inshore/ offshore
+  inner_join(PAR_off_cal, by = 'Date_Time', suffix = c("_HOBO", "_PAR")) # so we know values are from which sensor (columns have same name)
+
+# convert LUX to uMol m-2 s-1
+
+#plot PAR μmol/m²/s by light lux
+#fit an exponential function following Long et al. 2012
+mod_off <- nls(Underwater_PAR ~ A1*exp(-Light_Lux/t1) +y0,  # PAR in μmol/m²/s
+           data = Light_off, start = list(A1 = -84000, t1 = 84000, y0 = 84000)) #t1 = min&max difference, A1=min-max, y0=maxPAR
+
+
+# plot lux and PAR
+ggplot(Light_off, aes(x = Light_Lux, y = Underwater_PAR)) + # Inshore
+  geom_point() +
+  #geom_line(aes(y = predict(mod_off)),color = "red", linewidth = 1) +
+  geom_function(fun = function(x) 
+    {coef(mod_off)["A1"] *exp(-x / coef(mod_off)["t1"]) + coef(mod_off)["y0"]},
+                color = "red", linewidth = 1) +
+  labs(x = "Light (lux)",y = "Underwater PAR (µmol/m²/s)")
+
+
+# calibrate the light intensities to PAR based on this fit
+m_off<-summary(mod_off)$coefficients[,1] # pull out the coefficients from the model
+```
+Notes:  
+* PAR = A1 \times e^{-Lux/t1}+y0  
+* A1: Controls the magnitude and direction of the exponential component  
+* t1: Controls how quickly the curve approaches its asymptote as lux increases  
+* y0: The horizontal asymptote that PAR approaches at high lux, assuming t1 is positive (i think these are true)  
+
+#### Estimated PAR for all data  
+Added new column to datasets 
+```{r}
+HoboData_off<-HoboData_off |> #convert offshore data to PAR to test
+  mutate(PAR_estimate = predict(mod_off, newdata = HoboData_off)) 
+
+HoboData_in<-HoboData_in |> #convert inshore data to PAR
+  mutate(PAR_estimate = predict(mod_off, newdata = HoboData_in)) 
+
+HoboData_all<-HoboData_all |> #convert offshore data to PAR to test
+  mutate(PAR_estimate = predict(mod_off, newdata = HoboData_all)) 
+```
+
+
+### Plot the Light Data  
+```{r}
+#| warning: false
+#| echo: false
+#| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| label: fig-hobolight
+#| fig-cap: "Figure # shows light (PAR) over time between inshore and offshore zones at Paiko, Maunalua Bay."
+#| include: true
+#| eval: true
+#| fig-height: 6
+#| fig-width: 8
+
+# create a column for zone to differentiate the hobo datasets
+HoboData_all<-HoboData_all |> 
+  mutate(zone = case_when(str_detect(source_file, "^Hobo_IN") ~ "Inshore", # all files with "Hobo_IN" name as inshore
+                          str_detect(source_file, "^Hobo_OF") ~ "Offshore"))
+
+# plot calculated PAR (from calibration) over time
+PaikoLight<-HoboData_all |> 
+  filter(!is.na(zone)) |> # filter by zone
+  ggplot(aes(x = Date_Time, y = PAR_estimate,
+           color = zone, group = interaction(zone, source_file))) + # separate lines for gaps in data over time
+  geom_line(linewidth = 0.25, alpha = 0.6) +
+  facet_wrap(vars(Month = month(Date_Time, label = TRUE, abbr = FALSE)), # make 2 rows of plots by month
+             scales = "free_x",ncol = 2) +
+  scale_color_manual(values = c("Inshore" = "#e6cc00","Offshore" = "#e69b00")) + # light colors
+  coord_cartesian(ylim = c(0, 2100))+ # y-axis max larger
+  #scale_x_datetime(date_breaks = "2 weeks",date_labels = "%b %d",timezone = "Pacific/Honolulu") + # x-axis dates 
+  guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
+  labs(x = "Date", y = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"), #"PAR (µmol/m²/s)"
+       title = "Underwater Light (PAR) Time Series",
+       subtitle = "Paikō Beach, July–October 2026",
+       color = "Zone") +
+  theme_bw(base_size = 11) +
+  theme(plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+        plot.subtitle = element_text(size = 11, hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "top")
+
+PaikoLight
+
+#ggsave(here("Output","EnviroParameters", "PaikoLight2026.png")) 
+```
+
+#### Plot Light in July experiment only  
+```{r}
+#| warning: false
+#| echo: false
+#| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 6
+#| fig-width: 8
+
+
+# Plot july experiment data only to see better
+PaikoLight_July <- HoboData_all |>
+  filter(!is.na(zone)) |> # filter by zone
+  filter(month(Date_Time) == 07, year(Date_Time) == 2026) |> # July 2026 only
+  ggplot(aes(x = Date_Time, y = PAR_estimate,
+           color = zone, group = interaction(zone, source_file))) +
+  geom_line(linewidth = 0.25, alpha = 0.6) +
+  scale_color_manual(values = c("Inshore" = "#e6cc00","Offshore" = "#e69b00")) + # light colors
+  coord_cartesian(ylim = c(0, 2100))+ # increase y-axis max
+  guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
+  scale_x_datetime(date_breaks = "1 day", date_labels = "%b %d",
+    timezone = "Pacific/Honolulu") + # add x axis labels for days
+  labs(x = "Date", y = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"), #"PAR (µmol/m²/s)"
+       title = "Underwater Light (PAR) Time Series",
+       subtitle = "Paikō Beach, July 'Dry Season' Experiment 2026",
+       color = "Zone") +
+  theme_bw(base_size = 11) +
+  theme(plot.title = element_text(face = "bold", size = 11, hjust = 0.5),
+        plot.subtitle= element_text(size = 10, hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position= "top")
+
+PaikoLight_July
+
+#ggsave(here("Output","EnviroParameters", "PaikoLight_July2026.png")) 
+```
+
+#### Plot 3 days of Light in July experiment only   
+```{r}
+#| warning: false
+#| echo: false
+#| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 6
+#| fig-width: 8
+
+
+# Plot 3 days of july experiment data only to see even better
+PaikoLight_3days <- HoboData_all |>
+  filter(!is.na(zone),
+         Date_Time >= ymd("2026-07-14"),
+         Date_Time < ymd("2026-07-17")) |> # filter by zone and 3 days
+  ggplot(aes(x = Date_Time, y = PAR_estimate,
+           color = zone, group = interaction(zone, source_file))) +
+  geom_line(linewidth = 0.25, alpha = 0.6) +
+  scale_color_manual(values = c("Inshore" = "#e6cc00","Offshore" = "#e69b00")) + # light colors
+  coord_cartesian(ylim = c(0, 2100))+ # increase y-axis max
+  scale_x_datetime(date_breaks = "6 hours", 
+                   date_labels = "%b %d %H:%M",
+                   timezone = "Pacific/Honolulu") +
+  guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
+  labs(x = "Date", y = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"), #"PAR (µmol/m²/s)"
+       title = "Underwater Light (PAR) Over 3 Days",
+       subtitle = "Paikō Beach, July 'Dry Season' Experiment 2026",
+       color = "Zone") +
+  theme_bw(base_size = 11) +
+  theme(plot.title = element_text(face = "bold", size = 11, hjust = 0.5),
+        plot.subtitle= element_text(size = 10, hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position= "top")
+
+PaikoLight_3days
+
+#ggsave(here("Output","EnviroParameters", "3DayLight_July2026.png")) 
+```
+
+
+
+
+### Plot Temperature  
+```{r}
+#| warning: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| label: fig-hobotemp
+#| fig-cap: "Figure # shows temperature (˚C) over time between inshore and offshore zones at Paiko, Maunalua Bay."
+#| echo: false
+#| message: false
+#| include: true
+#| eval: true
+#| fig-height: 6
+#| fig-width: 8
+
+# plot the temperature and light across time for inshore and offshore
+# Plot temperature over time
+PaikoHoboTemp <- HoboData_all |> # see comments in light plot above
+  filter(!is.na(zone)) |> # filter by zone
+  ggplot(aes(x = Date_Time, y = Temperature_C,
+             color = zone, group = interaction(zone, source_file))) +
+  geom_line(linewidth = 0.25, alpha = 0.6) +
+  facet_wrap(vars(Month = month(Date_Time, label = TRUE, abbr = FALSE)), 
+             scales = "free_x", ncol = 2) +
+  guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
+  scale_color_manual(values = c("Inshore" = "#D86C47","Offshore" = "#306A8C")) +
+  labs(x = "Date", y = "Temperature (°C)",
+       title = "Seawater Temperature Time Series",
+       subtitle = "Paikō Beach, July–October 2026",
+       color = "Zone") +
+  theme_bw(base_size = 11) +
+  theme(plot.title = element_text(face = "bold", size = 11, hjust = 0.5),
+        plot.subtitle = element_text(size = 10, hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "top")
+
+PaikoHoboTemp
+
+#ggsave(here("Output","EnviroParameters", "PaikoTemp_Hobo2026.png")) 
+```
+
+
+
+__________________________________________________________________
+
+### Calculate Means  
+```{r}
+#| warning: false
+#| message: false
+
+# averages
+# calculate mean and SD for temperature and PAR
+LightTempMeans <- HoboData_all |>
+  filter(!is.na(zone)) |>
+  group_by(zone) |>
+  summarise(mean_temp = mean(Temperature_C, na.rm = TRUE),
+            sd_temp = sd(Temperature_C, na.rm = TRUE),
+            mean_PAR = mean(PAR_estimate, na.rm = TRUE),
+            sd_PAR = sd(PAR_estimate, na.rm = TRUE),
+            .groups = "drop")
+
+LightTempMeans
+
+
+#means
+#M<-colMeans(TempData[,c(2:4)])
+#SDs
+#S<-apply(TempData[,c(2:4)], 2, sd)
+#x<-barplot(M, names.arg = c('Tank A','Tank B','Tank C'), col = c('black','blue','green'), ylim = c(0,30), ylab = expression(paste('Mean Temperature (',~degree~C, ')')))
+#arrows(x, M+S, x,M-S, length = 0.05, angle = 90, code = 3)
+
+```
+
+
+```{r}
+# Empty your environment before you start working
+# Restart R
+# .rs.restartR()
+# remove whole list in environment
+# rm(list = ls())
+```
+
