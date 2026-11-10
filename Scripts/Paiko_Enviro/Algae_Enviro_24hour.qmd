@@ -1,0 +1,57 @@
+---
+title: "Respo Algae 24 Hour Environmental Data"
+author: "Haley Poppinga"
+format: 
+  html:
+    toc: true
+    theme: sandstone
+---
+
+
+
+### Load Libraries  
+
+```{r}
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(here)
+library(dplyr)
+library(ggrepel) # for repelling labels
+library(ggthemes)
+library(lubridate)
+library(cmocean) # colors
+```
+
+### Read Data  
+```{r}
+#| warning: false
+#| message: false
+
+# Read in the data and convert the date
+hobo_path <-here("Data", "Hobo_Files", "HOBO_Temp_Light") # folder with all hobo temp/lux data
+
+hobo_files <- list.files(path = hobo_path, pattern = "\\.csv$",full.names = TRUE,recursive = TRUE) # bring in all of the individual files
+```
+
+### Clean the Data  
+```{r}
+#| warning: false
+#| message: false
+
+
+```
+
+
+
+
+
+
+```{r}
+# Empty your environment before you start working
+# Restart R
+# .rs.restartR()
+# remove whole list in environment
+# rm(list = ls())
+```
