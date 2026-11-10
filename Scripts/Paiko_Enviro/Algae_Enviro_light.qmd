@@ -5,13 +5,18 @@ format:
   html:
     toc: true
     theme: sandstone
+    date: 2026-09-27
+    date-modified: last-modified
 ---
 
+# HOBO Temp/Lux Pendant Code  
+#### Created by: Haley Poppinga, Nyssa Silbiger  
 
+## Introduction to code/script  
+#####   Calibrate PAR logger with HOBO Pendant data to convert lux to PAR  
 
 
 ### Load Libraries  
-
 ```{r}
 #| warning: false
 #| message: false

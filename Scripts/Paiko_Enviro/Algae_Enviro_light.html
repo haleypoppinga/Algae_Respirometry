@@ -7,8 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Haley Poppinga">
+<meta name="dcterms.date" content="2026-09-27">
 
-<title>Respo Algae Environmental Data</title>
+<title>Respo Algae Environmental Light Data</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -62,17 +63,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="Respo_Algae_Enviro_files/libs/clipboard/clipboard.min.js"></script>
-<script src="Respo_Algae_Enviro_files/libs/quarto-html/quarto.js" type="module"></script>
-<script src="Respo_Algae_Enviro_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="Respo_Algae_Enviro_files/libs/quarto-html/popper.min.js"></script>
-<script src="Respo_Algae_Enviro_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="Respo_Algae_Enviro_files/libs/quarto-html/anchor.min.js"></script>
-<link href="Respo_Algae_Enviro_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="Respo_Algae_Enviro_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="Respo_Algae_Enviro_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="Respo_Algae_Enviro_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="Respo_Algae_Enviro_files/libs/bootstrap/bootstrap-6324ba2a6c15dd553a683532559c618d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="Algae_Enviro_light_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Algae_Enviro_light_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Algae_Enviro_light_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Algae_Enviro_light_files/libs/quarto-html/popper.min.js"></script>
+<script src="Algae_Enviro_light_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Algae_Enviro_light_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Algae_Enviro_light_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Algae_Enviro_light_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Algae_Enviro_light_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Algae_Enviro_light_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Algae_Enviro_light_files/libs/bootstrap/bootstrap-6324ba2a6c15dd553a683532559c618d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
 
 </head>
@@ -85,13 +86,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#load-libraries" id="toc-load-libraries" class="nav-link active" data-scroll-target="#load-libraries">Load Libraries</a></li>
+  <li><a href="#hobo-templux-pendant-code" id="toc-hobo-templux-pendant-code" class="nav-link active" data-scroll-target="#hobo-templux-pendant-code">HOBO Temp/Lux Pendant Code</a>
+  <ul class="collapse">
+  <li><a href="#created-by-haley-poppinga-nyssa-silbiger" id="toc-created-by-haley-poppinga-nyssa-silbiger" class="nav-link" data-scroll-target="#created-by-haley-poppinga-nyssa-silbiger">Created by: Haley Poppinga, Nyssa Silbiger</a></li>
+  <li><a href="#introduction-to-codescript" id="toc-introduction-to-codescript" class="nav-link" data-scroll-target="#introduction-to-codescript">Introduction to code/script</a>
+  <ul class="collapse">
+  <li><a href="#load-libraries" id="toc-load-libraries" class="nav-link" data-scroll-target="#load-libraries">Load Libraries</a></li>
   <li><a href="#read-data" id="toc-read-data" class="nav-link" data-scroll-target="#read-data">Read Data</a></li>
   <li><a href="#clean-the-data" id="toc-clean-the-data" class="nav-link" data-scroll-target="#clean-the-data">Clean the Data</a></li>
   <li><a href="#convert-lux-to-par" id="toc-convert-lux-to-par" class="nav-link" data-scroll-target="#convert-lux-to-par">Convert Lux to PAR</a></li>
   <li><a href="#plot-the-light-data" id="toc-plot-the-light-data" class="nav-link" data-scroll-target="#plot-the-light-data">Plot the Light Data</a></li>
   <li><a href="#plot-temperature" id="toc-plot-temperature" class="nav-link" data-scroll-target="#plot-temperature">Plot Temperature</a></li>
   <li><a href="#calculate-means" id="toc-calculate-means" class="nav-link" data-scroll-target="#calculate-means">Calculate Means</a></li>
+  </ul></li>
+  </ul></li>
   </ul>
 </nav>
 </div>
@@ -99,7 +107,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Respo Algae Environmental Data</h1>
+<h1 class="title">Respo Algae Environmental Light Data</h1>
 </div>
 
 
@@ -113,7 +121,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           </div>
   </div>
     
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 27, 2026</p>
+    </div>
+  </div>
   
+    <div>
+    <div class="quarto-title-meta-heading">Modified</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date-modified">November 10, 2026</p>
+    </div>
+  </div>
     
   </div>
   
@@ -122,6 +142,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
+<section id="hobo-templux-pendant-code" class="level1">
+<h1>HOBO Temp/Lux Pendant Code</h1>
+<section id="created-by-haley-poppinga-nyssa-silbiger" class="level3">
+<h3 class="anchored" data-anchor-id="created-by-haley-poppinga-nyssa-silbiger">Created by: Haley Poppinga, Nyssa Silbiger</h3>
+</section>
+<section id="introduction-to-codescript" class="level2">
+<h2 class="anchored" data-anchor-id="introduction-to-codescript">Introduction to code/script</h2>
+<section id="pi-ppfd-curves-using-platt-1980-photoinhibition-model" class="level4">
+<h4 class="anchored" data-anchor-id="pi-ppfd-curves-using-platt-1980-photoinhibition-model">PI (PPFD) Curves using Platt 1980 Photoinhibition Model</h4>
+</section>
 <section id="load-libraries" class="level3">
 <h3 class="anchored" data-anchor-id="load-libraries">Load Libraries</h3>
 <div class="cell">
@@ -246,7 +276,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Respo_Algae_Enviro_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="Algae_Enviro_light_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -280,7 +310,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="fig-hobolight" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-hobolight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="Respo_Algae_Enviro_files/figure-html/fig-hobolight-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%">
+<img src="Algae_Enviro_light_files/figure-html/fig-hobolight-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-hobolight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: Figure # shows light (PAR) over time between inshore and offshore zones at Paiko, Maunalua Bay.
@@ -295,7 +325,7 @@ Figure&nbsp;1: Figure # shows light (PAR) over time between inshore and offshore
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="Respo_Algae_Enviro_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%"></p>
+<p><img src="Algae_Enviro_light_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%"></p>
 </figure>
 </div>
 </div>
@@ -307,7 +337,7 @@ Figure&nbsp;1: Figure # shows light (PAR) over time between inshore and offshore
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="Respo_Algae_Enviro_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%"></p>
+<p><img src="Algae_Enviro_light_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%"></p>
 </figure>
 </div>
 </div>
@@ -321,7 +351,7 @@ Figure&nbsp;1: Figure # shows light (PAR) over time between inshore and offshore
 <div id="fig-hobotemp" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-hobotemp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="Respo_Algae_Enviro_files/figure-html/fig-hobotemp-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%">
+<img src="Algae_Enviro_light_files/figure-html/fig-hobotemp-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:70.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-hobotemp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: Figure # shows temperature (˚C) over time between inshore and offshore zones at Paiko, Maunalua Bay.
@@ -368,6 +398,8 @@ Figure&nbsp;2: Figure # shows temperature (˚C) over time between inshore and of
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># remove whole list in environment</span></span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># rm(list = ls())</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+</section>
+</section>
 </section>
 
 </main>

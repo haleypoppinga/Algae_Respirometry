@@ -5,11 +5,12 @@ format:
   html:
     toc: true
     theme: sandstone
+    date: 2026-09-27
+    date-modified: last-modified
 ---
 
 # Respo Code for PI Curves
-## Created by: Nyssa Silbiger, Maya Powell, Haley Poppinga
-### Last updated on: 2026-09-27
+#### Created by: Nyssa Silbiger, Maya Powell, Haley Poppinga
 
 ## Introduction to code/script
 #### PI (PPFD) Curves using Platt 1980 Photoinhibition Model

@@ -5,9 +5,15 @@ format:
   html:
     toc: true
     theme: sandstone
+    date: 2026-11-10
+    date-modified: last-modified
 ---
 
+# 24 Hour Sampling Sensor Code   
+#### Created by: Haley Poppinga, Nyssa Silbiger, Ashley Carreiro  
 
+## Introduction to code/script  
+#### Data: Tilt Meter, Water Level, PAR, Salinity    
 
 ### Load Libraries  
 
@@ -19,9 +25,43 @@ library(tidyverse)
 library(here)
 library(dplyr)
 library(ggrepel) # for repelling labels
+library(climaemet)
+library(patchwork)
+library(ggplotify)
+library(magick)
+library(grid)
+library(kableExtra)
+library(ggmap)
+library(ggspatial)
 library(ggthemes)
 library(lubridate)
 library(cmocean) # colors
+```
+
+
+## Tilt  
+###### Creating New CSV Files {.hidden .unumbered .unlisted}  
+
+Trimming down the tilt meter data to one hour after deployment and one hour before retrieval of the tilt meters.  
+
+Making sure all data is captured at one minute intervals.  
+
+Note that all data has been adjusted for the Magnetic Declination of -5.85 West within the Domino app. 
+
+All data speed units are in cm/s  
+
+**This code does not need to be run again!**  
+```{r}
+#| include: false
+#| eval: false
+#| echo: false
+
+# Inshore
+read_csv(here("Data/TiltMeterData/Tilt1_Current.csv")) %>%
+ set_names(c("DateTime","Speed","Heading","Velocity_N","Velocity_E")) %>% #Changing the headers int he dataframe
+  mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% #Changing the date to character using lubridatde
+  filter(between(DateTime, ymd_hms("2025-08-01 11:21:13"), ymd_hms("2025-08-14 08:45:13"))) %>% #Filtering between the dates that we want data from
+  write_csv(file ="Data/TiltMeterData/Tilt1_Current.csv") #Creating new CSV File with filtered dates
 ```
 
 ### Read Data  
@@ -30,9 +70,9 @@ library(cmocean) # colors
 #| message: false
 
 # Read in the data and convert the date
-hobo_path <-here("Data", "Hobo_Files", "HOBO_Temp_Light") # folder with all hobo temp/lux data
+tilt_path <-here("Data", "Hobo_Files", "24Hour2026") # folder with all logger data from Jul 2026
 
-hobo_files <- list.files(path = hobo_path, pattern = "\\.csv$",full.names = TRUE,recursive = TRUE) # bring in all of the individual files
+tilt_files <- list.files(path = tilt_path, pattern = "\\.csv$",full.names = TRUE,recursive = TRUE) # bring in all of the individual files
 ```
 
 ### Clean the Data  
