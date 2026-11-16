@@ -302,6 +302,16 @@ CommunityComp_algaeJuly2026
 
 ### Relative Native and Invasive Composition  
 ```{r}
+#| warning: false
+#| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 7
+#| fig-width: 8
+
+
 # filter for native and invasive algae
 CommunityComp_status <- CommunityComp_algae |>
   filter(community %in% c("Native", "Invasive"))
@@ -353,26 +363,157 @@ glimpse(CollectionSummer)
 #| message: false
 
 # CLEAN THE DATA
-CollectionSummer <- CollectionSummer %>%
-  mutate(long_dd = ifelse(long_dd > 0, -long_dd, long_dd)) # change the sign for longitude to negative b/c it is West
-glimpse(CollectionSummer)
+CollectionSummer <- CollectionSummer |> 
+   #filter(!is.na(date)) # valid algae collections have a date
+  filter(if_any(everything(), ~ !is.na(.x))) # removes weird NAs that showed up at end of dataset
+  #filter(year(date) == 2026,
+  #       month(date) == 07) #|> # filter for July 2026
+  #mutate(time_hours = as.numeric(time) /3600, # converts time to hours to plot continious
+         #sampling_date = factor(format(date, "%b %d")))
+
+# pivot longer
+Algae_enviro<-CollectionSummer  |> 
+  distinct(date, time, waypoint_number, zone,
+           temp_c, salinity_ppt, depth_cm) |> # separate duplicate observations for same waypoint (there shouldnt be any though)
+  pivot_longer(cols = c(temp_c, salinity_ppt, depth_cm),
+               names_to = "parameter",
+               values_to = "value") |> 
+  mutate(parameter = factor(parameter, levels = 
+                              c("temp_c", "salinity_ppt", "depth_cm"),
+                            labels = c("Temperature (°C)",
+                                       "Salinity (ppt)", "Depth (cm)")))
+
+# calculate mean and SD 
+Algae_enviro_summary <- Algae_enviro |>
+  group_by(date, zone, parameter) |>
+  summarise(mean_param = mean(value, na.rm = TRUE),
+            sd_param = sd(value, na.rm = TRUE),
+            n = sum(!is.na(value)), .groups = "drop")
+
 ```
 
-**View the edited dataset**:  
+**View the edited dataset**  
 ```{r}
 #| warning: false
 #| message: false
 
-glimpse(Collection_categories)
+glimpse(Algae_enviro)
+
+glimpse(Algae_enviro_summary)
 ```
 
-
-### Calculate Means  
+**Nice color palette for environmental data**  
 ```{r}
 #| warning: false
 #| message: false
 
-CollectionSummer_means<-CommunityCompSummer_long |> 
+enviro_palette <- c("Temperature (°C)" = cmocean("thermal")(100)[80], # from cmocean palette
+                    "Salinity (ppt)" = cmocean("haline")(100)[55],
+                    "Depth (cm)" = cmocean("deep")(100)[65])
+```
+
+
+### Collection Parameter Plot  
+**Plot the environmental data during collections**  
+```{r}
+#| warning: false
+#| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 7
+#| fig-width: 9
+
+# Plot in situ environmental conditions
+AlgaeEnviro_July2026 <- ggplot() +
+  geom_point(data = Algae_enviro,
+             aes(x = date, y = value, color = parameter), 
+             #position = position_jitter(width = 0.1, height = 0),
+             alpha = 0.4, size = 1.8) + #all individual measurements in back
+  geom_errorbar(data = Algae_enviro_summary, # add error
+                aes(x = date, ymin = mean_param - sd_param,
+                    ymax = mean_param + sd_param,
+                    color = parameter), width = 0.2) +
+  geom_point(data = Algae_enviro_summary, # means
+             aes(x = date, y = mean_param, color = parameter), size = 3) +
+  scale_color_manual(values = enviro_palette) +
+  #facet_wrap(~parameter, # facet by temp, sal, and depth
+             #ncol = 1, scales = "free_y", labeller = as_labeller(c(
+              # temp_c = "Temperature (°C)", 
+               #salinity_ppt = "Salinity (ppt)",
+               #depth_cm = "Depth (cm)"))) +
+  facet_grid(parameter ~ zone, scales = "free_y", # facet by inshore/  offshore
+             axes = "all_y", axis.labels = "all_y", # add labels to offshore plots too
+             labeller = labeller(zone = c(inshore = "Inshore",
+                                          offshore = "Offshore"))) + #capitalize
+             #labeller = labeller(parameter = c(
+              # temp_c = "Temperature (°C)",
+               #salinity_ppt = "Salinity (ppt)",
+               #depth_cm = "Depth (cm)"))) +
+  #scale_x_continuous(breaks = seq(6, 13, by = 1), 
+  #                   labels = function(x) sprintf("%02d:00", x)) + # 24 hour time
+  scale_x_date(date_breaks = "3 days", date_labels = "%b %d") +
+  
+  #scale_x_discrete(drop = FALSE) +
+  labs(x = "Sampling Date", y = NULL, #color = "Parameter",
+       title = "Algae Collection Environmental Conditions",
+       subtitle = "Paikō Beach, July 2026") +
+  theme_bw() +
+  theme(#strip.background = element_rect(fill = "white", color = "black"),
+        strip.text = element_text(face = "bold", size = 11),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black"),
+        axis.title.x = element_text(size = 11),
+        plot.title = element_text(face = "bold", hjust = 0.5), 
+        panel.spacing = unit(0.5, "cm"),
+        legend.position = "none",
+        plot.subtitle = element_text(hjust = 0.5))
+
+AlgaeEnviro_July2026
+#ggsave(here("Output", "EnviroParameters", "AlgaeEnviro_July2026.jpg"))
+```
+
+### Environmental Conditions by Zone  
+```{r}
+#| warning: false
+#| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 7
+#| fig-width: 9
+
+AlgaeEnviro_zone_July2026 <- ggplot(Algae_enviro,
+                                    aes(x = zone, y = value, fill = zone)) +
+  geom_boxplot(width = 0.5, alpha = 0.4, outlier.shape = NA  ) +
+  geom_jitter(width = 0.12,height = 0, size = 1.8, alpha = 0.5) +
+  facet_wrap(~parameter,ncol = 3, scales = "free_y") +
+  scale_fill_manual(values = c("inshore" = "#3a9085",
+                               "offshore" = "#31688e")) +
+  scale_x_discrete(labels = c("inshore" = "Inshore",
+                              "offshore" = "Offshore")) +
+  labs(x = "Zone", y = NULL, title = "In Situ Environmental Conditions",
+       subtitle = "Paikō Beach, July 2026") +
+  theme_bw() +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+        panel.spacing = unit(0.5, "cm"),
+        plot.subtitle = element_text(size = 11, hjust = 0.5))
+
+AlgaeEnviro_zone_July2026
+ggsave(here("Output", "EnviroParameters", "AlgaeEnviro_zone_July2026.jpg"))
+```
+
+
+**Calculate Means**   
+```{r}
+#| warning: false
+#| message: false
+
+CollectionSummer_means<-CollectionSummer |> 
 # Pivot Longer
   pivot_longer(cols = c(temp_c, salinity_ppt, depth_cm), # parameters
                names_to = "Variable",    # columns for those
