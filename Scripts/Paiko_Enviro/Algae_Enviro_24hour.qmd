@@ -12,11 +12,10 @@ format:
 # 24 Hour Sampling Sensor Code   
 #### Created by: Haley Poppinga, Nyssa Silbiger, Ashley Carreiro  
 
-## Introduction to code/script  
+### Introduction to code/script  
 #### Data: Tilt Meter, Water Level, PAR, Salinity    
 
 ### Load Libraries  
-
 ```{r}
 #| warning: false
 #| message: false
@@ -40,51 +39,182 @@ library(cmocean) # colors
 
 
 ## Tilt  
-###### Creating New CSV Files {.hidden .unumbered .unlisted}  
 
+##### Creating New CSV Files {.hidden .unumbered .unlisted}  
 Trimming down the tilt meter data to one hour after deployment and one hour before retrieval of the tilt meters.  
 
 Making sure all data is captured at one minute intervals.  
 
-Note that all data has been adjusted for the Magnetic Declination of -5.85 West within the Domino app. 
+Magnetic Declination Paiko, Maunalua Bay: +9˚ 16' Positive East.  
+Note that all data has been adjusted for the Magnetic Declination of +9.27˚ East within the Domino app.  
 
 All data speed units are in cm/s  
 
-**This code does not need to be run again!**  
+*This code does not need to be run again!*  
+
+**Tilt Data**  
 ```{r}
 #| include: false
 #| eval: false
 #| echo: false
 
-# Inshore
-read_csv(here("Data/TiltMeterData/Tilt1_Current.csv")) %>%
- set_names(c("DateTime","Speed","Heading","Velocity_N","Velocity_E")) %>% #Changing the headers int he dataframe
+# Current Inshore 2026
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN.csv")) %>%
+  set_names(c("DateTime","Speed","Heading","Velocity_N","Velocity_E")) %>% # Changing the headers in the dataframe
+  mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% #Changing the date to character using lubridate
+  filter(between(DateTime, ymd_hms("2026-07-17 08:30:00"), ymd_hms("2026-07-18 07:20:00"))) %>% #Filtering between the dates that we want data from
+  write_csv(file ="Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_IN2026.csv") #Creating new CSV File with filtered dates
+
+# Current Offshore 2026
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN.csv")) %>%
+  set_names(c("DateTime","Speed","Heading","Velocity_N","Velocity_E")) %>% 
+  mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% 
+  filter(between(DateTime, ymd_hms("202-07-17 08:30:00"), 
+                 ymd_hms("2025-07-18 07:20:00"))) %>%
+  write_csv(file ="Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_OFF2026.csv")
+```
+
+**Temperature Data**  
+```{r}
+#| include: false
+#| eval: false
+#| echo: false
+
+# Temp Inshore 2026
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN_temp.csv")) %>%
+ set_names(c("DateTime","Temperature")) %>% #Changing the headers in the dataframe
   mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% #Changing the date to character using lubridatde
-  filter(between(DateTime, ymd_hms("2025-08-01 11:21:13"), ymd_hms("2025-08-14 08:45:13"))) %>% #Filtering between the dates that we want data from
-  write_csv(file ="Data/TiltMeterData/Tilt1_Current.csv") #Creating new CSV File with filtered dates
+  filter(between(DateTime, ymd_hms("2026-07-17 08:30:00"), ymd_hms("2026-07-18 07:20:00"))) %>%  #Filtering between the dates that we want data from
+  write_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_IN_temp2026.csv")) #Creating new CSV File with filtered dates
+
+# Temp Offshore 2026
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN_temp.csv")) %>%
+  set_names(c("DateTime","Temperature")) %>% 
+  mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% 
+  filter(between(DateTime, ymd_hms("2026-07-17 08:30:00"), ymd_hms("2026-07-18 07:20:00"))) %>%  
+  write_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_OFF_temp2026.csv"))
 ```
 
-### Read Data  
+
+**Tide Data**    
+Tide data was downloaded from:   <https://www.gsi.go.jp/kanshi/tide_data_21_e.html>  
+
+```{r}
+#| eval: false
+#| echo: false
+
+
+read_table(here("Data/Hobo_Files/24Hour2026/TiltMeter/21_2021-2025_hour.txt"), col_names = FALSE) %>%
+  select(-1) %>% #Drops the first column
+  set_names(c("Date", "Hour", "Sealevel_mm", "DatumConstant_mm", "FixedPointHeight_mm")) %>%
+  mutate(Date = lubridate::ymd(Date)) %>% 
+  filter(between(Date, ymd("2026-07-17"), ymd("2026-07-18"))) %>%
+  
+write_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/TideData_2026.csv"))
+
+```
+
+
+##### Load Data  
+Most of the tilt meters were set to the *Typical* configuration:  
+
+| Configuration | Temperature | Burst Interval | Burst Rate | Burst Duration |
+|:--------------|:------------|:---------------|:-----------|:---------------|
+| Typical       | 1(min)      | 1(min)         | 8(Hz)      | 20(sec)        |
+
+For those tilt meters that were not configured this way, data was condensed to one minute intervals. All data was trimmed down to one hour after deployment time and one hour before retrieval time.  
+
+Note that all data has been adjusted for the Magnetic Declination of -5.85 West within the Domino app.  
+
+All data speed units are in cm/s  
+
+##### Read Data  
+
+```{r}
+#| message: false
+#| echo: false
+
+#Load Current Data
+TiltIN2026 <- read_csv(here("Data", "Hobo_Files", "Tilt_IN2026.csv"))
+TiltOFF2026 <- read_csv(here("Data", "TiltMeterData", "Tilt_OFF2026.csv"))
+
+#Load Temp Data
+TiltIN_Temp2026<- read_csv(here("Data", "Hobo_Files", "Tilt_IN_temp2026.csv"))
+TiltOFF_Temp2026<- read_csv(here("Data", "Hobo_Files", "Tilt_OFF_temp2026.csv"))
+
+#Load Tide Data
+TideData2026 <- read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/TideData_2026.csv"))
+
+#Read in Pictures
+#TiltINPhoto <- image_read(here("Output/TiltMeterData/TiltPhotos/Tilt1jpg.jpg"))
+#TiltOFFPhoto <- image_read(here("Output/TiltMeterData/TiltPhotos/Tilt2.jpg"))
+
+#Load Meta Data
+#JulyMetaData<- read_csv(here("Data/TiltMeterData/MetaData.csv"))
+#LatLong <- JulyMetaData %>% dplyr::select(Site, Long, Lat)
+```
+
+
+##### Clean the Data  
+
+*Tilt Meter Data*  
+Created a function *Tilt_Data_fun* to add a tilt meter name column, separate the data and time into two columns, and add a m/s unit column.  
+
 ```{r}
 #| warning: false
 #| message: false
 
-# Read in the data and convert the date
-tilt_path <-here("Data", "Hobo_Files", "24Hour2026") # folder with all logger data from Jul 2026
+Tilt_Data_fun <- function(df, tilt_name){  #Function to add a tilt name column and separate data and time column 
+df %>%
+    
+separate(col = DateTime, #Choose the column that you want separated
+             into = c("Date", "Time"), # Separate it into two columns "Data" and "Time"
+             sep = " ", #What are the two separated by 
+             remove = FALSE) %>% #Keep the orginial DateTime Column    
+    
+mutate( #Set datetime,a dding in the UTC timezone so wer are removing taht
+       Date = lubridate::ymd(Date), #Set Date
+       Time = lubridate::hms(Time), #Set Time
+       Speed_m = Speed * 0.01, #Change cm/s -> m/s
+       VelocityN_m = Velocity_N * 0.01, #Change cm/s -> m/s
+       VelocityE_m = Velocity_E* 0.01, #Change cm/s -> m/s
+   
+       #Double check that there are no negative headings, can do 360 + negative
+       
+       TiltMeter = tilt_name) %>%
+    
+    dplyr::select(TiltMeter, everything()) #Moving TiltMeter# Column to be the first column
+    
+}
 
-tilt_files <- list.files(path = tilt_path, pattern = "\\.csv$",full.names = TRUE,recursive = TRUE) # bring in all of the individual files
+TiltIN_clean <- Tilt_Data_fun(TiltIN2026, "TiltIN")
+TiltOFF_clean <- Tilt_Data_fun(TiltOFF2026, "TiltOFF")
 ```
 
-### Clean the Data  
+
+We then join the data to combine all 8 Tilt Meter, Longitude and Latitude data, and add a *Site* column  
 ```{r}
-#| warning: false
-#| message: false
-
 
 ```
 
 
+After we join the data we can view the upper (99.9%) and lower bounds (0.1%) to filter the data
 
+```{r}
+#| echo: false
+#| results: false
+
+lower_bound <- quantile(JoinedData$Speed, 0.001)
+Upper_bound <- quantile(JoinedData$Speed, 0.999)
+Upper_bound#Upper bound is 25.01416 we will filter data from this number 
+
+sum(JoinedData$Speed >= .5) #Counting the number of points above .5
+# = 5
+
+sum(JoinedData$Speed> 25.01416) #Number of points above the upper bound, 0.25, 145 points
+
+table(cut(JoinedData$Speed_m , seq(0, .25,.05), include.lowest = TRUE)) ##Showing me the different bins and how many data points I have in each one
+```
 
 
 

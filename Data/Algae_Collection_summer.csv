@@ -1,0 +1,208 @@
+﻿date,time,species_full,species,species_number,algae_id,waypoint_number,zone,temp_c,salinity_ppt,depth_cm,lat_dd,long_dd,notes
+2026-07-07,6:19,dictyota_acutiloba,DA,01,DA01,0015,inshore,24.8,34.9,34,21.2815769668669,-157.732173018157,
+2026-07-07,6:21,halimeda_discoidea,HD,01,HD01,0016,inshore,24.8,35.1,40,21.2815929763019,-157.732100011781,
+2026-07-07,6:25,avrainvillea_lacerata,XAV,01,XAV01,0017,inshore,24.8,35.1,36,21.2816399987787,-157.731999009848,"lots of stuff on it, REMOVED (DID NOT RUN)"
+2026-07-07,6:27,acanthophora_spicifera,AS,01,AS01,0018,inshore,24.8,35.1,30,21.2816499732435,-157.731999009848,
+2026-07-07,6:29,gracilaria_salicornia,GS,01,GS01,0019,inshore,24.8,35.2,30,21.2816639710218,-157.731983000413,next to huge clump
+2026-07-07,6:31,halimeda_discoidea,HD,02,HD02,0020,inshore,24.8,35.2,38,21.2816659826785,-157.731970008463,
+2026-07-07,6:32,dictyota_acutiloba,DA,02,DA02,0021,inshore,24.8,35.2,45,21.2816779688001,-157.731942012906,"YSI first, epiphytic on AS"
+2026-07-07,6:34,spyridia_filamentosa,SF,01,SF01,0022,inshore,24.8,35.2,40,21.2816320359707,-157.731907982379,
+2026-07-07,6:38,acanthophora_spicifera,AS,02,AS02,0023,inshore,24.8,35.2,39,21.2816270068288,-157.731929020956,sun coming out
+2026-07-07,6:41,gracilaria_salicornia,XGS,02,XGS02,0024,inshore,24.8,35.2,38,21.2816229835153,-157.731940001249,REMOVED (DID NOT RUN)
+2026-07-07,6:42,avrainvillea_lacerata,AV,02,AV02,0025,inshore,24.8,35.2,40,21.2816379871219,-157.731978977099,written as AS02 on fieldsheet at first
+2026-07-07,6:45,spyridia_filamentosa,SF,02,SF02,0026,inshore,24.9,35.2,43,21.2816489674151,-157.732072016224,"growing near natives, Lyngbya mixed in"
+2026-07-09,6:38,avrainvillea_lacerata,AV,01,AV01,0028,offshore,25.3,35.2,70,21.2796050403267,-157.732030022889,"much more D. sandvincensis offshore, NO 0027 waypoint"
+2026-07-09,6:42,gracilaria_salicornia,GS,02,GS02,0029,offshore,25.3,35.2,74,21.2795750331134,-157.731935977936,"rocky substrate, written as GS01 on fieldsheet at first"
+2026-07-09,6:45,acanthophora_spicifera,AS,03,AS03,0030,offshore,25.3,35.2,80,21.2796270009130,-157.731850985438,rocky substrate
+2026-07-09,6:47,halimeda_discoidea,XHD,03,XHD03,0031,offshore,25.3,35.2,83,21.2796330358833,-157.731846040115,REMOVED (DID NOT RUN)
+2026-07-09,6:49,gracilaria_salicornia,XGS,03,XGS03,X0032,offshore,25.2,35.2,74,21.2796700000000,-157.731810000000,"THREW BACK, 7967 3181 deleted point"
+2026-07-09,6:59,acanthophora_spicifera,AS,04,AS04,0032,offshore,25.4,35.2,70,21.2794850114733,-157.731806980446,
+2026-07-09,7:02,spyridia_filamentosa,SF,03,SF03,0033,offshore,25.4,35.2,75,21.2795160245150,-157.731733974069,sun up
+2026-07-09,7:05,halimeda_discoidea,HD,04,HD04,0034,offshore,25.5,35.2,73,21.2795249931514,-157.731682006270,octopus break
+2026-07-09,7:13,spyridia_filamentosa,SF,04,SF04,0035,offshore,25.5,35.2,80,21.2795860134065,-157.732044020668,
+2026-07-09,7:21,caulerpa_sertularioides,CS,01,CS01,0036,offshore,25.4,35.2,65,21.2796610314399,-157.732281982899,
+2026-07-09,7:37,caulerpa_sertularioides,CS,02,CS02,0037,inshore,25.2,35.5,30,21.2816049624234,-157.732071010396,
+2026-07-09,7:50,avrainvillea_lacerata,AV,03,AV03,0038,inshore,25.1,35.2,40,21.2816619593650,-157.731762975454,
+2026-07-10,6:42,halimeda_discoidea,HD,03,HD03,0039,offshore,24.6,35.1,64,21.2794120050967,-157.731750989333,
+2026-07-10,6:57,gracilaria_salicornia,GS,03,GS03,0040,offshore,24.5,35.2,52,21.2794679962099,-157.731850985438,on top of elevated substrate
+2026-07-10,7:05,avrainvillea_lacerata,AV,04,AV04,0041,offshore,24.5,35.2,55,21.2793980073184,-157.731967996806,
+2026-07-10,7:14,dictyota_acutiloba,DA,03,DA03,0042,offshore,24.7,35.2,50,21.2798600178212,-157.732086014003,"sandy, mid-shore"
+2026-07-10,7:25,dictyota_acutiloba,DA,04,DA04,0043,inshore,24.3,35.1,14,21.2816170323640,-157.731736991554,
+2026-07-10,7:29,gracilaria_salicornia,GS,04,GS04,0044,inshore,24.4,34.9,16,21.2816529907286,-157.731748977676,
+2026-07-10,7:31,dictyota_acutiloba,DA,05,DA05,0045,inshore,24.4,34.9,31,21.2816460337490,-157.731763981283,huge piece submerged
+2026-07-10,7:38,halimeda_discoidea,HD,05,HD05,0046,inshore,24.5,34.8,17,21.2816069740802,-157.731800023466,
+2026-07-10,7:40,spyridia_filamentosa,SF,05,SF05,0047,inshore,24.5,34.9,16,21.2815949879587,-157.731799017638,
+2026-07-10,7:43,avrainvillea_lacerata,AV,05,AV05,0048,inshore,24.6,34.8,17,21.2815740332007,-157.731823995709,
+2026-07-13,7:27,avrainvillea_lacerata,AV,06,AV06,0049,offshore,24.3,35.5,53,21.2795150186867,-157.732062963769,
+2026-07-13,7:30,gracilaria_salicornia,GS,05,GS05,0050,offshore,24.3,35.5,34,21.2795049604028,-157.732025999576,rocky elevation
+2026-07-13,7:33,acanthophora_spicifera,AS,05,AS05,0051,offshore,24.3,35.5,50,21.2795079778880,-157.732009990141,
+2026-07-13,7:35,halimeda_discoidea,HD,06,HD06,0052,offshore,24.3,35.5,60,21.2794619612396,-157.731909994036,collected on single rock
+2026-07-13,7:38,dicyota_sandvicensis,DS,01,DS01,0053,offshore,24.3,35.5,45,21.2794560100883,-157.731904964894,"sun up, CS03 bag"
+2026-07-13,7:41,dicyota_sandvicensis,DS,02,DS02,0054,offshore,24.4,35.5,30,21.2793929781765,-157.731874035671,"on Hal, CS04 bag"
+2026-07-13,7:46,dicyota_sandvicensis,DS,03,DS03,0055,offshore,24.4,35.5,52,21.2794359773397,-157.731757024303,"on Hal, DA06 bag"
+2026-07-13,7:50,avrainvillea_lacerata,AV,07,AV07,0056,offshore,24.4,35.5,57,21.2794059701264,-157.731699021533,"on small rocks in sand, side by side"
+2026-07-13,7:53,acanthophora_spicifera,AS,06,AS06,0057,offshore,24.4,35.5,50,21.2794039584696,-157.731777979061,on rock by bubble algae (DC)
+2026-07-13,7:56,gracilaria_salicornia,GS,06,GS06,0058,offshore,24.4,35.5,40,21.2794450297952,-157.731812009588,on elevated rocky
+2026-07-13,8:22,spyridia_filamentosa,XSF,06,XSF06,0059,offshore,24.0,35.7,50,21.2794639728963,-157.731676977128,"took long time to find, windy"
+2026-07-14,6:18,spyridia_filamentosa,SF,06,SF06,0060,inshore,24.4,35.1,20,21.2816489674151,-157.731889039278,huge piece inshore close to edge
+2026-07-14,6:21,halimeda_discoidea,HD,07,HD07,0061,inshore,24.3,35.1,27,21.2816789746284,-157.731920974329,
+2026-07-14,6:23,dicyota_sandvicensis,DS,04,DS04,0062,inshore,24.4,35.2,19,21.2817310262471,-157.731978977099,two pieces close by
+2026-07-14,6:42,gracilaria_salicornia,GS,07,GS07,0063,offshore,24.6,35.3,55,21.2794750370085,-157.731992974877,
+2026-07-14,6:44,dicyota_sandvicensis,DS,05,DS05,0064,offshore,24.6,35.3,60,21.2794850114733,-157.731964979321,
+2026-07-14,6:55,avrainvillea_lacerata,AV,08,AV08,0065,offshore,24.5,35.3,59,21.2794420123100,-157.731990963221,
+2026-07-14,7:00,acanthophora_spicifera,XAS,07,XAS07,0066,offshore,24.6,35.3,65,21.2794570159167,-157.731915023178,not running
+2026-07-14,7:04,spyridia_filamentosa,SF,07,SF07,0067,offshore,24.6,35.3,57,21.2793669942766,-157.731864983216,on rock with bubble algae (DC)
+2026-07-14,7:09,dicyota_sandvicensis,DS,06,DS06,0068,offshore,24.6,35.3,63,21.2793840095401,-157.731798011810,in CS03 bag
+2026-07-14,7:18,spyridia_filamentosa,SF,08,SF08,0069,offshore,24.6,35.6,70,21.2794219795614,-157.731936983764,"on rock, ??"
+2026-07-14,7:19,acanthophora_spicifera,AS,07,AS07,0070,offshore,24.6,35.3,58,21.2794199679047,-157.731918962672,renamed from AS08 to AS07
+2026-07-15,6:21,gracilaria_salicornia,GS,08,GS08,0071,inshore,25.2,35.2,23,21.2815540004522,-157.731942012906,
+2026-07-15,6:24,dictyota_acutiloba,DA,06,DA06,0072,inshore,25.2,35.3,26,21.2815369851887,-157.731993980706,"DA08 bag, epiphytic on GS, egg mass attached"
+2026-07-15,6:26,avrainvillea_lacerata,AV,09,AV09,0073,inshore,25.1,35.3,24,21.2815990112722,-157.732066987082,next to each other samples
+2026-07-15,6:31,spyridia_filamentosa,SF,09,SF09,0074,inshore,25.2,35.3,33,21.2816189602017,-157.731915023178,epiphytic on GS
+2026-07-15,6:42,halimeda_discoidea,HD,08,HD08,0075,offshore,25.6,35.3,65,21.2793789803982,-157.732005966827,
+2026-07-15,6:49,halimeda_discoidea,XHD,09,XHD09,0076,offshore,25.6,35.3,80,21.2792680040002,-157.731812009588,"cooter height, too far from transect, threw back"
+2026-07-15,6:53,acanthophora_spicifera,AS,08,AS08,0077,offshore,25.6,35.4,65,21.2794049642980,-157.731841010973,on hard substrate
+2026-07-15,6:56,dicyota_sandvicensis,DS,07,DS07,0078,offshore,25.5,35.3,50,21.2794610392302,-157.731829024851,"on HD, next to each other"
+2026-07-15,7:01,galaxaura_rugosa,XGG,01,XGG01,0079,offshore,25.5,35.3,60,21.2794890347868,-157.731842016801,"Galaxaura but didn’t run, CS03 bag, next to encrusting coral and ledge"
+2026-07-15,7:05,halimeda_discoidea,HD,09,HD09,0080,offshore,25.6,35.3,67,21.2793710175902,-157.731897002086,new HD09
+2026-07-15,7:10,dictyosphaeria_cavernosa,DC,01,DC01,0081,offshore,25.5,35.3,70,21.2794829998165,-157.731798011810,AS09 bag on rock and AV
+2026-07-15,7:15,gracilaria_salicornia,GS,09,GS09,0082,offshore,25.6,35.3,68,21.2794600334018,-157.731904964894,"on rock, green biofilm on it"
+2026-07-16,6:44,dictyota_acutiloba,DA,07,DA07,0083,inshore,25.2,35.3,55,21.2816389929503,-157.731923991814,on GS
+2026-07-16,6:47,halimeda_discoidea,HD,10,HD10,0084,inshore,25.2,35.5,51,21.2816710118204,-157.731944024563,oatch of HD
+2026-07-16,6:49,avrainvillea_lacerata,AV,10,AV10,0085,inshore,25.2,35.5,58,21.2816550023854,-157.731960033998,
+2026-07-16,6:52,acanthophora_spicifera,AS,09,AS09,0086,inshore,25.2,35.5,59,21.2816040404141,-157.731838999316,
+2026-07-16,6:55,spyridia_filamentosa,SF,10,SF10,0087,inshore,25.2,35.2,57,21.2816010229290,-157.731788037345,on GS
+2026-07-16,7:08,halimeda_discoidea,HD,11,HD11,0088,offshore,25.5,35.5,74,21.2796010170132,-157.731689969078,
+2026-07-16,7:11,acanthophora_spicifera,AS,10,AS10,0089,offshore,25.5,35.5,76,21.2795679923147,-157.731644036248,on rock
+2026-07-16,7:14,avrainvillea_lacerata,AV,11,AV11,0090,offshore,25.5,35.5,76,21.2795249931514,-157.731595002115,next to HD
+2026-07-16,7:16,dictyosphaeria_cavernosa,DC,02,DC02,0091,offshore,25.5,35.5,75,21.2795379851013,-157.731572035700,
+2026-07-16,7:21,dictyosphaeria_cavernosa,DC,03,DC03,0092,offshore,25.6,35.5,76,21.2795181199908,-157.731696171686,"marked as 0921 and 0922 waypints on GPS/gps download, this one is 0921, in rock crevice"
+2026-07-20,5:55,dictyosphaeria_cavernosa,DC,04,DC04,0093,offshore,25.7,35.4,82,21.2794329598546,-157.732091965154,"thomas snorkeling, DS09 bag"
+2026-07-20,6:03,dicyota_sandvicensis,DS,08,DS08,0094,offshore,25.8,35.4,80,21.2793560139835,-157.731984006241,check temps
+2026-07-20,6:08,gracilaria_salicornia,GS,10,GS10,0095,offshore,25.8,35.4,79,21.2794170342386,-157.731907982379,
+2026-07-20,6:13,dictyosphaeria_cavernosa,DC,05,DC05,0096,offshore,25.7,35.4,92,21.2794400006533,-157.731910999864,AS12 bag
+2026-07-20,6:16,gracilaria_salicornia,GS,11,GS11,0097,offshore,25.7,35.4,90,21.2794639728963,-157.731933966279,
+2026-07-20,6:25,avrainvillea_lacerata,AV,12,AV12,0098,offshore,25.7,35.4,95,21.2794629670680,-157.732115015388,sun up ~6:26 but clouds block
+2026-07-20,6:41,acanthophora_spicifera,AS,11,AS11,0099,inshore,25.2,35.4,53,21.2816239893436,-157.732087019831,
+2026-07-20,6:48,halimeda_discoidea,HD,12,HD12,0100,inshore,25.3,35.4,56,21.2816399987787,-157.732072016224,
+2026-07-20,6:51,dictyota_acutiloba,DA,08,DA08,0101,inshore,25.3,35.4,59,21.2816509790719,-157.732043014839,
+2026-07-20,6:53,spyridia_filamentosa,SF,11,SF11,0102,inshore,25.3,35.4,55,21.2816160265356,-157.732000015676,
+2026-07-21,5:40,halimeda_discoidea,HD,13,HD13,0103,offshore,25.6,34.9,83,21.2794039584696,-157.732090959325,
+2026-07-21,5:45,acanthophora_spicifera,AS,12,AS12,0104,offshore,25.6,34.9,75,21.2793990131468,-157.732043014839,
+2026-07-21,5:49,dictyosphaeria_cavernosa,DC,06,DC06,0105,offshore,25.6,34.9,80,21.2794069759548,-157.732091965154,lots of biofilm
+2026-07-21,5:53,gracilaria_salicornia,GS,12,GS12,0106,offshore,25.6,34.9,80,21.2794310320169,-157.732043014839,
+2026-07-21,6:06,gracilaria_salicornia,GS,13,GS13,0107,inshore,25.3,34.9,32,21.2816479615867,-157.731970008463,
+2026-07-21,6:10,spyridia_filamentosa,SF,12,SF12,0108,inshore,25.3,34.9,45,21.2816450279206,-157.731901025400,"fishermen nearby, on GS"
+2026-07-21,6:13,avrainvillea_lacerata,AV,13,AV13,0109,inshore,25.3,34.9,40,21.2816819921136,-157.731952993199,darkish holdfast
+2026-07-21,6:17,dictyota_acutiloba,DA,09,DA09,0110,inshore,25.3,34.9,65,21.2816679943353,-157.731846040115,"GS, SF on top epiphytic"
+2026-07-21,6:19,gracilaria_salicornia,GS,14,GS14,0111,inshore,25.3,34.9,52,21.2816519849002,-157.731791976839,dense patches of limu
+2026-07-21,6:23,halimeda_discoidea,HD,14,HD14,0112,inshore,25.3,34.9,53,21.2816489674151,-157.731900019571,"81645 31901, super black holdfast"
+2026-07-22,5:46,dictyosphaeria_cavernosa,DC,07,DC07,0113,offshore,25.7,34.9,78,21.2795199640095,-157.731946036220,
+2026-07-22,5:48,dicyota_sandvicensis,DS,09,DS09,0114,offshore,25.7,35.1,100,21.2795150186867,-157.731921980157,
+2026-07-22,5:51,halimeda_discoidea,HD,15,HD15,0115,offshore,25.8,35.1,95,21.2794339656830,-157.731921980157,
+2026-07-22,5:54,dicyota_sandvicensis,DS,10,DS10,0116,offshore,25.8,34.9,63,21.2794079817832,-157.731914017349,on HD
+2026-07-22,6:02,dictyosphaeria_cavernosa,DC,08,DC08,0117,offshore,25.9,34.9,88,21.2792769726366,-157.731959028170,
+2026-07-22,6:08,avrainvillea_lacerata,AV,14,AV14,0118,offshore,25.9,34.9,84,21.2793179601431,-157.732007978484,"DS on it, hard holdfast in sand"
+2026-07-22,6:25,dictyota_acutiloba,DA,10,DA10,0119,inshore,25.4,34.9,31,21.2816270068288,-157.731653004885,on GS/SF
+2026-07-22,6:30,gracilaria_salicornia,GS,15,GS15,0120,inshore,25.5,34.9,39,21.2816470395774,-157.731744032353,with SF
+2026-07-22,6:36,acanthophora_spicifera,AS,13,AS13,0121,inshore,25.5,34.8,41,21.2816420104355,-157.731845034286,
+2026-07-22,6:40,avrainvillea_lacerata,AV,15,AV15,0122,inshore,25.6,34.9,38,21.2816410046071,-157.731881998479,"in sand with Hypnea, sun up"
+2026-07-23,5:53,dictyosphaeria_cavernosa,DC,09,DC09,0123,offshore,25.6,35.0,75,21.2795020267367,-157.732080984861,
+2026-07-23,5:55,halimeda_discoidea,HD,16,HD16,0124,offshore,25.6,35.0,76,21.2794730253518,-157.732081990689,
+2026-07-23,5:58,acanthophora_spicifera,AS,14,AS14,0125,offshore,25.7,35.0,70,21.2794079817832,-157.732051983476,"on HD, on rock"
+2026-07-23,6:11,avrainvillea_lacerata,AV,16,AV16,0126,offshore,25.7,35.0,78,21.2793970014900,-157.732038991526,on large loose rock
+2026-07-23,6:13,dicyota_sandvicensis,DS,11,DS11,0127,offshore,25.7,35.0,83,21.2794529926032,-157.732082996517,"on HD, big piece sideways"
+2026-07-23,6:27,dictyota_acutiloba,DA,11,DA11,0128,inshore,25.4,35.1,32,21.2816000171006,-157.732095988467,on SF?
+2026-07-23,6:31,acanthophora_spicifera,AS,15,AS15,0129,inshore,25.3,35.0,27,21.2816529907286,-157.731999009848,in front of fish pond
+2026-07-23,6:36,avrainvillea_lacerata,AV,17,AV17,0130,inshore,25.4,35.0,35,21.2816669885069,-157.731995992362,
+2026-07-23,6:38,gracilaria_salicornia,GS,16,GS16,0131,inshore,25.3,35.0,27,21.2816600315273,-157.731922985986,in big clump
+2026-07-23,6:40,spyridia_filamentosa,SF,13,SF13,0132,inshore,25.3,35.0,34,21.2816690001637,-157.731799017638,buge clumps of SF near sandy area
+2026-07-24,6:26,halimeda_discoidea,HD,17,HD17,0133,offshore,25.6,35.2,85,21.2794929742813,-157.731912005693,conductivity: 53967
+2026-07-24,6:33,acanthophora_spicifera,XAS,16,XAS16,0134,offshore,25.6,35.1,84,21.2794600334018,-157.731797005981,"pieces collected near each other, threw this one back"
+2026-07-24,6:40,acanthophora_spicifera,AS,16,AS16,0135,offshore,25.7,35.1,74,21.2794570159167,-157.731755012646,"re-collected more, double rainbow"
+2026-07-24,6:44,avrainvillea_lacerata,AV,18,AV18,0136,offshore,25.7,35.1,82,21.2794659845531,-157.731669014320,only HD next
+2026-07-24,6:47,dictyosphaeria_cavernosa,DC,10,DC10,0137,offshore,25.7,35.1,80,21.2795130070299,-157.731719976291,conductivity: 53937
+2026-07-24,6:54,gracilaria_salicornia,GS,17,GS17,0138,offshore,25.7,35.1,80,21.2794720195234,-157.731818966568,"on rock/crevice, Iwa bird"
+2026-07-24,7:07,avrainvillea_lacerata,AV,19,AV19,0139,inshore,25.3,35.1,25,21.2816189602017,-157.731756018475,possible rain overnight
+2026-07-24,7:14,avrainvillea_lacerata,AV,20,AV20,0140,inshore,25.3,35.1,28,21.2816079799086,-157.731880992651,
+2026-07-24,7:16,acanthophora_spicifera,AS,17,AS17,0141,inshore,25.3,35.1,36,21.2816180381924,-157.731844028458,near sandy fishpond area
+2026-07-24,7:20,spyridia_filamentosa,SF,14,SF14,0142,inshore,25.3,35.1,26,21.2816290184855,-157.731687035412,GS/DA
+2026-07-24,7:25,halimeda_discoidea,HD,18,HD18,0143,inshore,25.4,35.1,30,21.2816600315273,-157.731961039826,
+2026-07-27,6:14,acanthophora_spicifera,AS,18,AS18,0144,inshore,24.5,35.4,17,21.2815710157156,-157.731728022918,cond: 53039
+2026-07-27,6:18,gracilaria_salicornia,GS,18,GS18,0145,inshore,24.5,35.4,16,21.2815980054438,-157.731791976839,"patch, cond: 53036"
+2026-07-27,6:22,acanthophora_spicifera,AS,19,AS19,0146,inshore,24.5,35.3,14,21.2816079799086,-157.731842016801,"sandy patch, cond: 52966"
+2026-07-27,6:25,halimeda_discoidea,HD,19,HD19,0147,inshore,24.5,35.3,23,21.2816450279206,-157.731875041500,"patch, cond: 52865"
+2026-07-27,6:29,dictyota_acutiloba,DA,12,DA12,0148,inshore,24.4,35.5,13,21.2815280165523,-157.731984006241,"2 pieces on GS, edge of transect 2, cond: 53066"
+2026-07-27,6:33,halimeda_discoidea,HD,20,HD20,0149,inshore,24.4,35.5,17,21.2815260048956,-157.732035974041,"patch of tiny pieces, cond: 53030"
+2026-07-27,6:36,gracilaria_salicornia,GS,19,GS19,0150,inshore,24.3,35.5,15,21.2815440259874,-157.732102023438,cond: 53019
+2026-07-27,6:40,avrainvillea_lacerata,AV,21,AV21,0151,inshore,24.4,35.5,16,21.2815300282091,-157.732172012329,"sandy area with HD/AS, cond: 53051"
+2026-07-27,6:44,acanthophora_spicifera,AS,20,AS20,0152,inshore,24.4,35.5,18,21.2815489713103,-157.732244012877,"lots of AS, cond: 53104"
+2026-07-27,6:50,gracilaria_salicornia,GS,20,GS20,0154,inshore,24.3,35.5,13,21.2815919704735,-157.732111997902,"skipped 153, patch next to HD, AS, AV, SF, DA, cond: 52965"
+2026-07-28,5:45,spyridia_filamentosa,SF,15,SF15,0155,inshore,25.4,34.5,21,21.2815130129457,-157.731751995161,"near DA, on GS, cond: 53026"
+2026-07-28,5:51,dictyota_acutiloba,DA,13,DA13,0156,inshore,25.4,34.7,23,21.2815580237657,-157.732009990141,"near HD, GS, cond: 53145"
+2026-07-28,5:55,dictyota_acutiloba,DA,14,DA14,0157,inshore,25.4,34.8,21,21.2815420143306,-157.732162037864,"big piece, in-line with palm tree (PT), on AS/AV, cond: 53235"
+2026-07-28,5:59,halimeda_discoidea,HD,21,HD21,0158,inshore,25.4,34.8,22,21.2815850134939,-157.732128007337,"HD patch, in AS mix, cond: 53215"
+2026-07-28,6:07,acanthophora_spicifera,AS,21,AS21,0159,inshore,25.4,34.6,17,21.2815099954605,-157.731716036797,"rainy, shallow area, holdfasts maybe exposed at low tide, cond: 52944"
+2026-07-28,6:14,spyridia_filamentosa,SF,16,SF16,0160,inshore,25.4,34.6,20,21.2816479615867,-157.731696004048,"huge patches of algae, maybe more hard substrate, cond: 52945"
+2026-07-28,6:29,acanthophora_spicifera,AS,22,AS22,0161,offshore,25.6,35.0,68,21.2794900406152,-157.731672031805,"on small rocks, cond: 53690"
+2026-07-28,6:38,dicyota_sandvicensis,DS,12,DS12,0162,offshore,25.6,35.0,66,21.2794590275735,-157.731722993776,"on HD, cond: 53716"
+2026-07-28,6:43,dicyota_sandvicensis,DS,13,DS13,0163,offshore,25.6,35.0,74,21.2794099934399,-157.731708995998,"nearby other dictyota, cond: 53790"
+2026-07-28,6:53,dicyota_sandvicensis,DS,14,DS14,0165,offshore,25.6,35.0,66,21.2794470414519,-157.731655016541,"on HD, sun visible, cond: 53715"
+2026-07-28,6:48,halimeda_discoidea,HD,22,HD22,0164,offshore,25.6,35.0,65,21.2793819978833,-157.731687035412,"probably wont run, cond: 53691, @7:16 inshore getting exposed"
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,

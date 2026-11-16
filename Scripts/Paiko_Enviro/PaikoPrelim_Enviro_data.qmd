@@ -9,7 +9,7 @@ format:
 ---
 
 ## Introduction  
-### Preliminary Background Environmental Data  
+### Preliminary Paiko Background Environmental Data  
 **Location: Paikō Beach in Maunalua Bay**  
 
 Description: On January 1st, 2026, Haley and Mica took environmental data at Paikō Beach in Maunalua Bay. Three 30m transects were laid out (one transect at a time) parallel to shore (alongshore) at an inshore location and an offshore location near the western end of the beach adjacent to a freshwater fishpond site (Kalauha‘iha‘i Fishpond) with potential SGD implications.  
@@ -65,8 +65,8 @@ library(sf)
 #| warning: false
 #| message: false
 
-EnviroData<-read_csv(here("Data","Paiko_Enviro_meta.csv"))
-glimpse(EnviroData)
+PrelimEnviroData<-read_csv(here("Data","PaikoPrelim_Enviro_meta.csv"))
+glimpse(PrelimEnviroData)
 ```
 
 ### Clean the Data  
@@ -75,9 +75,9 @@ glimpse(EnviroData)
 #| message: false
 
 # CLEAN THE DATA
-EnviroData <- EnviroData %>%
+PrelimEnviroData <- PrelimEnviroData %>%
   mutate(long_dd = ifelse(long_dd > 0, -long_dd, long_dd)) # change the sign for longitude to negative b/c it is West
-glimpse(EnviroData)
+glimpse(PrelimEnviroData)
 ```
 
 
@@ -126,7 +126,7 @@ Plot salinity values of each sampling point along site:
 
 # PLOT THE SALINITY MAP
 ggmap(PaikoMap)+
-  geom_point(data = EnviroData, # environmental data
+  geom_point(data = PrelimEnviroData, # preliminary environmental data
              aes(x = long_dd, y = lat_dd, color = salinity_ppt), # column of long and lat and salinity
              size = 4) +
   scale_color_gradientn(colors = cmocean("haline")(256))+ # custom haline color scheme from cmocean package
@@ -144,7 +144,7 @@ ggmap(PaikoMap)+
                          pad_y = unit(0.25, "cm")) + # add style and make north arrow smaller
   labs(x = "Longitude",
        y = "Latitude",
-       title = "Background Environmental Gradient: Salinity",
+       title = "Preliminary Background Environmental Gradient: Salinity",
        subtitle = "Paikō Beach 2026/01/19",
        color = "Salinity (ppt)") + # legend label
   theme_minimal(base_size = 11) + # labels/theme for a pub visualization
@@ -170,7 +170,7 @@ Plot temp values of each sampling point along site:
 
 # PLOT THE TEMPERATURE MAP
 ggmap(PaikoMap)+
-  geom_point(data = EnviroData, # environmental data
+  geom_point(data = PrelimEnviroData, # environmental data
              aes(x = long_dd, y = lat_dd, color = temp_c), # column of long, lat, temp
              size = 4) +
   scale_color_cmocean(name = "thermal", breaks = scales::pretty_breaks(n = 6))+ # custom haline color scheme from cmocean package
@@ -187,7 +187,7 @@ ggmap(PaikoMap)+
   coord_sf(crs = 4326) +  # scale bar to work, needs to be in this typical coordinate reference system for a GPS (WGS84)
   labs(x = "Longitude",
        y = "Latitude",
-       title = "Background Environmental Gradient: Temperature",
+       title = "Preliminary Background Environmental Gradient: Temperature",
        subtitle = "Paikō Beach 2026/01/19",
        color = "Temperature (˚C)") + # legend label
   theme_minimal(base_size = 11) + # labels/theme for a pub visualization
@@ -209,7 +209,7 @@ ggmap(PaikoMap)+
 
 # PLOT THE DEPTH MAP
 ggmap(PaikoMap)+
-  geom_point(data = EnviroData, # environmental data
+  geom_point(data = PrelimEnviroData, # environmental data
              aes(x = long_dd, y = lat_dd, color = depth_cm), # column of long, lat, depth
              size = 4) +
   scale_color_cmocean(name = "deep", direction = 1)+ # custom haline color scheme from cmocean package
@@ -226,7 +226,7 @@ ggmap(PaikoMap)+
   coord_sf(crs = 4326) +  # scale bar to work, needs to be in this typical coordinate reference system for a GPS (WGS84)
   labs(x = "Longitude",
        y = "Latitude",
-       title = "Background Environmental Gradient: Depth",
+       title = "Preliminary Background Environmental Gradient: Depth",
        subtitle = "Paikō Beach 2026/01/19",
        color = "Depth (cm)") + # legend label
   theme_minimal(base_size = 11) + # labels/theme for a pub visualization
@@ -247,7 +247,7 @@ ggmap(PaikoMap)+
 #| warning: false
 #| message: false
 
-EnviroData_means<-EnviroData%>% 
+PrelimEnviroData_means<-PrelimEnviroData%>% 
 # Pivot Longer
   pivot_longer(cols = c(temp_c, salinity_ppt, depth_cm), # parameters
                names_to = "Variable",    # columns for those
@@ -256,7 +256,7 @@ EnviroData_means<-EnviroData%>%
   group_by(zone, Variable) %>% # group by inshore/offshore and variables
   summarise(parameter_mean = mean(Value, na.rm = TRUE)) # get mean 
 
-EnviroData_means 
+PrelimEnviroData_means 
 ```
 
 

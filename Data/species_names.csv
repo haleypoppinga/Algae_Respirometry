@@ -1,11 +1,20 @@
-﻿species,species_name
-av,Avrainvillea lacerata
-as,Acanthophora spicifera
-gs,Gracilaria salicornia
-cs,Caulerpa sertularioides
-sf,Spyridia filamentosa
-da,Dictyota acutiloba
-hd,Halimeda discoidea
-ds,Dictyota sandvicensis
-dc,Dictyosphaeria cavernosa
-blank,Blank
+﻿species_id,species,species_name,full_species
+AV,av,Avrainvillea lacerata,avrainvillea_lacerata
+AS,as,Acanthophora spicifera,acanthophora_spicifera
+GS,gs,Gracilaria salicornia,gracilaria_salicornia
+CS,cs,Caulerpa sertularioides,caulerpa_sertularioides
+SF,sf,Spyridia filamentosa,spyridia_filamentosa
+DA,da,Dictyota acutiloba,dictyota_acutiloba
+HD,hd,Halimeda discoidea,halimeda_discoidea
+DS,ds,Dictyota sandvicensis,dicyota_sandvicensis
+DC,dc,Dictyosphaeria cavernosa,dictyosphaeria_cavernosa
+BLANK,blank,Blank,blank
+GG,gg,Galaxaura rugosa,galaxaura_rugosa
+HYP,hyp,Hypnea spp,hypnea_spp
+LYNG,lyng,Lyngbya majuscula,lyngbya_majuscula
+PAD,pad,Padina spp,padina_spp
+NEO,neo,Neomeris spp,neomeris_spp
+LAU,lau,Laurencia spp,laurencia_spp
+OTHER,other,Other,other
+SAND,sand,Sand,sand
+ROCK,rock,Rock,rock
