@@ -85,7 +85,7 @@ Sample_Info <- Sample_Info |>
 
 RespoR2 <- RespoR |> 
   mutate(light_level = as.integer(light_level)) |> # make sure light level is integer
-  select(-sample_id, -run_block, -light_value) |> # avoid duplicated columns after join (run_block/light_value already exist in RespoR)
+  dplyr::select(-sample_id, -run_block, -light_value) |> # avoid duplicated columns after join (run_block/light_value already exist in RespoR)
   left_join(Sample_Info, by = c("file_id_csv", "light_level")) |>  #join calculated LoLinR slopes back to sample metadata
 # what this does: for each LoLinR slope, find the metadata row with the same oxygen file and the same experimental light level
  # calculate rate using chamber water volumes
@@ -186,6 +186,7 @@ algae_basic_PI_plot <- RespoR_Normalized %>%
   scale_x_continuous(breaks = seq(0, 900, by = 100)) +
   coord_cartesian(xlim = c(0, 900)) +
   facet_wrap(~species, scales = "free_y")
+algae_basic_PI_plot
 #ggsave(here("Output","PI","Algae_Basic_PI_plot.pdf"), algae_basic_PI_plot, width = 10, height = 10)
 
 

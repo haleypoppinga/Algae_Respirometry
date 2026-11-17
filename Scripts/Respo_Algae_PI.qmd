@@ -66,6 +66,9 @@ library(ggforce)
 
 ### Read Data  
 ```{r}
+#| warning: false
+#| message: false
+
 ######### Load processed data and metadata ###############
 RespoR <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_R.csv"))
 RespoR_Normalized <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_RNormalized_AllPIRates.csv"))
@@ -82,23 +85,28 @@ RespoR_Normalized <- RespoR_Normalized %>% left_join(sp_names, by = "species")
 
 ##### Species palette  
 ```{r}
+#| warning: false
+#| message: false
+
 # set up species colors
-species_palette <- c(av  = "#033500",  # green algae division
-                 hd  = "#66A61E",  # green
-                 cs  = "#20B2AA",  # green
-                 dc  = "#239665",  # green
-                 as  = "#E41A1C",  # red
-                 gs  = "#FFA500",  # red
-                 sf  = "#7C0A02",  # red
-                 da  = "#A57A54",  # brown
-                 ds  = "#A89F51")  # brown
-# full_species list:
-# av, as, gs, da, ds, dc, sf, cs, hd
+species_palette <- c("Avrainvillea lacerata"= "#045404",  # green algae division
+                     "Halimeda discoidea" = "#66A61E",  #green
+                     "Caulerpa sertularioides"= "#20B2AA",  # green
+                     "Dictyosphaeria cavernosa" = "#239665",  # green
+                     "Acanthophora spicifera"   = "#E41A1C",  # red
+                     "Gracilaria salicornia"= "#FFA500",  # red
+                     "Spyridia filamentosa" = "#7C0A02",  # red
+                     "Dictyota acutiloba"= "#A57A54",  # brown
+                     "Dictyota sandvicensis" = "#A89F51")  # brown
+
 ```
 
 
 #### Define Model
 ```{r}
+#| warning: false
+#| message: false
+
 ### Define final Platt photoinhibition model
 # Platt et al. (1980) Photoinhibition Model ###
 platt_model <- function(light_value, Ps, AQY, beta, Rd) {
@@ -122,7 +130,27 @@ platt_model <- function(light_value, Ps, AQY, beta, Rd) {
 * if beta = 0, no Iopt b/c no decline, Iopt would be beyond range/approaching infinity  
 
 
+**Pmax = "Am" = (max photosynthetic rate) **
+    * should be positive based on range of umol.cm2.hr - here ~0-2
+    * fitted maximum gross photosynthetic capacity, can be higher than highest observed net rate b/c model estimates gross capacity and then subtracts respiration
+
+**AQY (apparent quantum yield) = alpha**
+    # should be positive and between 0-1 (often much smaller)
+    # high alpha -> alga responds strongly to small increases in light)
+    # initial slope of the PI curve at low irradiance
+    # represents photochemical efficiency at low light
+
+**Rd = dark respiration**
+    # should be subtracted and usually between -2-0 but can adjust if larger
+    # magnitude of the negative dark metabolic rate
+    # fitted magnitude of dark respiration, the equation ends in - Rd, 
+    # predicted net rate in darkness
+
+
 ```{r}
+#| warning: false
+#| message: false
+
 # lists to save outputs from each individual Platt Model fit
 coef_list <- list() # fitted parameters for each individual
 curve_list <- list() # smooth fitted curve for each 
@@ -135,18 +163,6 @@ raw_list <- list() # observed raw data for each
 #| message: false
 #| warning: false
 
-# make forloop
-for (i in unique(RespoR_Normalized$algae_id)) {
-  # subset one individual's PI curve
-  data <- RespoR_Normalized |>
-    filter(algae_id == i) |>
-    arrange(light_value)
-  
-  # identify species and zone 
-  sp <- data$species[1] 
-  sp_name <- data$species_name[1] # full species name
-  z <- data$zone[1] # zone
-  cat("\nModel 2:", sp, z, i, "\n") # catenate
   # make forloop
   for (i in unique(RespoR_Normalized$algae_id)) {
     # subset one individual's PI curve
@@ -215,44 +231,77 @@ for (i in unique(RespoR_Normalized$algae_id)) {
     
     # make smooth light sequence for fitted curve
     curve_df <- tibble(light_value = seq(0, 900, by = 5)) |>
-      mutate(pred_rate = platt_model(light_value, Ps = coefs["Ps"], AQY = coefs["AQY"],  # predicted
+      mutate(pred_rate = platt_model(light_value, Ps = coefs["Ps"], AQY = coefs["AQY"],  # photosynthetic rate predicted by Platt model
                                      beta = coefs["beta"], Rd = coefs["Rd"]),
              species = sp, species_name = sp_name, zone = z, algae_id = i)
     
     curve_list[[i]] <- curve_df # save curve
     
     raw_list[[i]] <- data |> # save raw observations
-      select(species, species_name, zone, algae_id, light_value, umol.g.hr)
+      dplyr::select(species, species_name, zone, algae_id, light_value, umol.g.hr)
   }
-}
 ```
 
 
-#### Combine PI Model Outputs  
+**Combine PI Model Outputs**   
 ```{r}
-# one row per individual with fitted parameters
+#| warning: false
+#| message: false
+
+# one row per individual with fitted parameters (Pmax, alpha, beta, Rd, Ik, Iopt)
 PI_individuals <- bind_rows(coef_list)
 
 # all individual fitted curves
 PI_curve_data <- bind_rows(curve_list)
 
-# raw data points
+# raw data points for each individual
 PI_raw_data <- bind_rows(raw_list)
 
 #View(PI_individuals)
 ```
 
 
+**Summary Table of PI Curve Fitted Rates**  
+Mean and standard error of individual PPFD curves that were fitted.  
+```{r}
+#| warning: false
+#| message: false
+
+# mean +/- SE of individual PPFD curves table 
+PI_curve_summary<- PI_curve_data |>
+  group_by(species, species_name, zone, light_value) |>
+  summarise(mean_rate = mean(pred_rate, na.rm = TRUE), n = n_distinct(algae_id),
+            se_rate = sd(pred_rate, na.rm = TRUE) / sqrt(n),.groups = "drop")
+
+PI_curve_summary
+```
+
+**Define y-axis limits to make plots easier to compare**
+```{r}
+#| warning: false
+#| message: false
+
+
+# common y-axis limits for all PI curve plots
+PI_y_limits <- range(c( PI_raw_data$umol.g.hr,
+                        PI_curve_data$pred_rate ),na.rm = TRUE)
+
+```
+
+
 ### INDIVIDUAL PLOTS  
 #### Fit Individual PPFD (PI) Curves  
 ```{r}
+#| warning: false
+#| message: false
+
 ## Individual curves for each sample (140)
 PI_individuals_plot <- ggplot() +
   geom_point(data = PI_raw_data, # observed points
-             aes(x = light_value, y = umol.g.hr, color = species),
+             aes(x = light_value, y = umol.g.hr, color = species), # plot raw data
              size = 2) +
   geom_line(data = PI_curve_data, # fitted Platt curve
-            aes(x = light_value, y = pred_rate, color = species, group = algae_id),
+            aes(x = light_value, y = pred_rate, color = species, group = algae_id), # plot predicted rates
             linewidth = 0.8) +
   geom_hline(yintercept = 0, linetype = 2, color = "grey50") +# line at net photosynthesis = 0
   scale_color_manual(values = species_palette) + # color palette
@@ -270,6 +319,9 @@ PI_individuals_plot <- ggplot() +
 
 #### INSHORE  
 ```{r}
+#| warning: false
+#| message: false
+
 PI_inshore_raw <- PI_raw_data |>
   filter(zone == "inshore")
 
@@ -280,69 +332,332 @@ PI_inshore_curve <- PI_curve_data |>
 
 #### OFFSHORE  
 ```{r}
+#| warning: false
+#| message: false
 
 ```
 
 
 
+### Bootstrap Analysis  
+Population Platt model ± bootstrap 95% CI  
 
-### Bootstrap Analysis
+```{r}
+#| warning: false
+#| message: false
 
+```
 
 
 
 ### PI Curve Figures  
 
 #### Within-species: inshore vs offshore  
+Only 4 species were found both inshore and offshore. This figure compares their PI curves between inshore and offshore.  
 ```{r}
+#| warning: false
+#| message: false
 
+# pull out species found in both zones
+both_zones <- PI_individuals |>
+  distinct(species, species_name, zone) |>
+  count(species, species_name) |>
+  filter(n == 2, !species %in% c("cs", "ds", "da")) |> # check if in both zones and keep only those, remove cs, ds, da for this discussion
+  pull(species) # species codes
+
+both_zones
 ```
+
+**Intraspecific differences between inshore and offshore zones**  
+```{r}
+#| warning: false
+#| message: false
+
+
+PI_within_species <- ggplot() +
+  geom_point(data = PI_raw_data |>  # raw individual observations in background
+               filter(species %in% both_zones),# just the species in both zones
+             aes(x = light_value,y = umol.g.hr, color = zone),
+             alpha = 0.2,size = 1)+
+  geom_ribbon(data = PI_curve_summary |> # SE around mean individual fitted curves
+                filter(species %in% both_zones),# just the species in both zones
+               aes(x = light_value, ymin = mean_rate - se_rate,
+                   ymax = mean_rate + se_rate, fill = zone),
+              alpha = 0.2) +
+  geom_line(data = PI_curve_summary |>  # mean individual fitted curve
+              filter(species %in% both_zones), # just the species in both zones
+            aes(x = light_value,y = mean_rate,color = zone),
+            linewidth = 1) +
+  geom_hline(yintercept = 0,linetype = 2,color = "grey50") + # add a l;ine where net photosynthesis = 0
+  facet_wrap( ~ species_name) + #facet by species
+  #coord_cartesian(ylim = PI_y_limits) + # y axis comparable 
+  scale_color_manual(values = c("inshore" = "#90E4C1","offshore" = "#31688e")) + # colors for zones
+  scale_fill_manual(values = c("inshore" = "#90E4C1","offshore" = "#31688e")) +
+  scale_x_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 200))+ # fix x axis breaks
+  labs(title = "Intraspecific Differences Between Zones",
+       x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Net photosynthesis ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")"),
+       color = "Zone",fill = "Zone") +
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+        axis.text.x = element_text(size = 11))
+
+PI_within_species
+#ggsave(here("Output", "PI", "PI_plots", "PI_within_species"))
+```
+
+
 
 
 #### Within-zone: compare species  
-```{r}
-
-```
+Mean individual fitted Platt curves ± SE among individuals  
 
 
 ##### INSHORE  
 ```{r}
+#| warning: false
+#| message: false
 
+PI_species_inshore <- ggplot() +
+  geom_point(data = PI_raw_data |> # plot the raw data
+      filter(zone == "inshore"),
+      aes(x = light_value, y = umol.g.hr,color = species_name),
+      alpha = 0.15,
+      size = 1) +
+  geom_line(data = PI_curve_summary |>  # mean fitted individual curves from model
+              filter(zone == "inshore"),
+            aes(x = light_value, y = mean_rate, color = species_name), # mean rate from all the rates calculated from the model which used the raw data
+            linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = 2,color = "grey50") +
+  scale_color_manual(values = species_palette) +
+  scale_x_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 200))+ # fix x axis breaks
+  coord_cartesian(ylim = PI_y_limits) + # y axis comparable 
+  labs(title = "Inshore Interspecific Differences", color = "Species",
+       x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Net photosynthesis ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+        axis.text.x = element_text(size = 11))
+
+PI_species_inshore
 
 ```
 
 ##### OFFSHORE 
 ```{r}
+#| warning: false
+#| message: false
 
+PI_species_offshore <- ggplot() +
+  geom_point(data = PI_raw_data |> # plot the raw data
+      filter(zone == "offshore"),
+      aes(x = light_value, y = umol.g.hr,color = species_name),
+      alpha = 0.15,
+      size = 1) +
+  geom_line(data = PI_curve_summary |>  # mean fitted individual curves from model
+              filter(zone == "offshore"),
+            aes(x = light_value, y = mean_rate, color = species_name), # mean rate from all the rates calculated from the model which used the raw data
+            linewidth = 1) +
+  geom_hline(yintercept = 0, linetype = 2,color = "grey50") + # line for 0 net photosyn
+  scale_color_manual(values = species_palette) +
+  #coord_cartesian(ylim = PI_y_limits) + # y axis comparable 
+  labs(title = "Offshore Interspecific Differences", color = "Species",
+       x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Net photosynthesis ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+        axis.text.x = element_text(size = 11))
+
+PI_species_offshore
+
+```
+
+**Combine the plots**  
+```{r}
+#| warning: false
+#| message: false
+
+PI_between_species<-PI_species_inshore + # combine plots using patchwork
+  theme(legend.position = "none") +
+  PI_species_offshore +
+  theme(legend.position = "right")
+
+PI_between_species
 ```
 
 
 
 ### Individual Parameter Tables
-# Pmax (Ps)
-# AQY
-# beta
-# Rd
-# Ik
-# Iopt
+* Pmax (Ps)
+* AQY
+* beta
+* Rd
+* Ik
+* Iopt
+```{r}
+#| warning: false
+#| message: false
+
+PI_parameter_individuals <- PI_individuals |>
+  dplyr::select(species,species_name, zone, algae_id, Pmax, AQY, beta,
+         Rd, Ik, Iopt,AIC) |>
+  arrange(species, zone, algae_id)
+
+PI_parameter_individuals
+```
+
+```{r}
+#| warning: false
+#| message: false
+
+# put parameters into long format 
+PI_parameters_long <- PI_parameter_individuals |>
+  pivot_longer(cols = c(Pmax, AQY, beta, Rd, Ik, Iopt),
+               names_to = "parameter", values_to = "value")
+```
+
 
 ### Parameter Means for all species and zones
 ```{r}
+#| warning: false
+#| message: false
 
+# Parameter means +/- SE #####
+
+PI_parameter_summary <- PI_parameters_long |>
+  group_by(
+    species,
+    species_name,
+    zone,
+    parameter
+  ) |>
+  summarise(
+    n = sum(!is.na(value)),
+    mean = mean(value, na.rm = TRUE),
+    sd = sd(value, na.rm = TRUE),
+    se = sd / sqrt(n),
+    .groups = "drop"
+  )
+
+#View(PI_parameter_summary)
+
+PI_parameter_table <- PI_parameter_summary |>
+  mutate(
+    mean_SE = paste0(
+      round(mean, 2),
+      " ± ",
+      round(se, 2)
+    )
+  ) |>
+  dplyr::select(
+    species,
+    species_name,
+    zone,
+    parameter,
+    n,
+    mean_SE
+  ) |>
+  pivot_wider(
+    names_from = parameter,
+    values_from = c(mean_SE, n)
+  )
+
+View(PI_parameter_table)
 ```
 
 
 ### Parameter Comparison Figures
+
+**Make species name label**  
 ```{r}
+#| warning: false
+#| message: false
+
+PI_parameters_long <- PI_parameters_long |>
+  mutate(species_label = paste0("<i>", species_name, "</i>"))
+
+PI_parameter_summary <- PI_parameter_summary |>
+  mutate(species_label = paste0("<i>", species_name, "</i>"))
+```
+
+**Make parameter comparison plot of means**  
+```{r}
+#| warning: false
+#| message: false
+
+PI_parameter_plot <- ggplot() +
+  
+  # individual parameter estimates
+  geom_point(
+    data = PI_parameters_long,
+    aes(
+      x = species_label,
+      y = value,
+      color = zone
+    ),
+    position = position_jitterdodge(
+      jitter.width = 0.15,
+      dodge.width = 0.6
+    ),
+    alpha = 0.4,
+    size = 1.5
+  ) +
+  
+  # mean +/- SE
+  geom_errorbar(
+    data = PI_parameter_summary,
+    aes(
+      x = species_label,
+      ymin = mean - se,
+      ymax = mean + se,
+      color = zone
+    ),
+    position = position_dodge(width = 0.6),
+    width = 0.15,
+    linewidth = 0.7
+  ) +
+  
+  # mean
+  geom_point(
+    data = PI_parameter_summary,
+    aes(
+      x = species_label,
+      y = mean,
+      color = zone
+    ),
+    position = position_dodge(width = 0.6),
+    size = 3
+  ) +
+  
+  facet_wrap(
+    ~ parameter,
+    scales = "free_y"
+  ) +
+  
+  labs(
+    x = NULL,
+    y = "Parameter value",
+    color = "Zone"
+  ) +
+  
+  theme_classic() +
+  
+  theme(
+    axis.text.x = ggtext::element_markdown(
+      angle = 45,
+      hjust = 1
+    ),
+    strip.text = element_text(face = "bold")
+  )
+
+PI_parameter_plot
 
 ```
 
-# Ik
-# Pmax
-# AQY
-# Rd
-# beta
-# Iopt
+
  
 
  
