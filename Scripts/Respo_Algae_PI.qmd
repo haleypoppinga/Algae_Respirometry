@@ -1,5 +1,5 @@
 ---
-title: "Respo Algae R"
+title: "Respo Algae PPFD Curves"
 author: "Haley Poppinga"
 format: 
   html:
@@ -74,7 +74,7 @@ RespoR <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_R.csv"))
 RespoR_Normalized <- read_csv(here("Data","Respo_Files","PI","Respo_Algae_RNormalized_AllPIRates.csv"))
 
 # full species names df
-sp_names <- read_csv(here("Data/species_names.csv"))
+sp_names <- read_csv(here("Data/Species_Names.csv"))
 # join species names with the normalized data
 RespoR_Normalized <- RespoR_Normalized %>% left_join(sp_names, by = "species")
 ```
@@ -101,6 +101,21 @@ species_palette <- c("Avrainvillea lacerata"= "#045404",  # green algae division
 
 ```
 
+#### Calculate measured dark respiration (Rd) from raw data, light level 1
+```{r}
+# measured Rd
+Rd_measured <- RespoR_Normalized |>
+  filter(light_dark == "dark") |> # filter only dark column
+  group_by(algae_id) |>
+  summarise(dark_rate = mean(umol.g.hr, na.rm = TRUE), # dark rate mean
+            Rd = -dark_rate,.groups = "drop") # make it positive bc model equation subtracts it
+
+#View(Rd_measured)
+RespoR_Normalized <- RespoR_Normalized |> # join respiration back onto every row 
+  left_join(Rd_measured, by = "algae_id") |> 
+  filter(!(algae_id == "DS04")) # filter out one outlier inshore DS sample
+```
+
 
 #### Define Model
 ```{r}
@@ -125,7 +140,8 @@ platt_model <- function(light_value, Ps, AQY, beta, Rd) {
 
 *Calculate eventually:*   
 * Ik = saturation  
-* Ik = Ps/alpha = Pmax / AQY  
+  * Ik = Pmax / AQY 
+  * Ps/AQY is Is when beta >0
 * Iopt = actual fitted irradiance where photosynthesis peaks, PPFD where the curve peaks before photoinhibition decline  
 * if beta = 0, no Iopt b/c no decline, Iopt would be beyond range/approaching infinity  
 
@@ -174,20 +190,27 @@ raw_list <- list() # observed raw data for each
     sp <- data$species[1] 
     sp_name <- data$species_name[1] # full species name
     z <- data$zone[1] # zone
-    cat("\nModel 2:", sp, z, i, "\n") # catenate
+    #cat("\nModel 2:", sp, z, i, "\n") # catenate
+    Rd_val <- data$Rd[1] # measured dark resp rate for individual
+    
+    fit_data <- data |>  # fit Ps, AQY, and beta from light measurements
+      filter(light_dark == "light")  |> # dark measurements already used to calc Rd
+      mutate(Rd_val = Rd_val)
     
     # use nls_multstart to fit the photoinhibition curve
     # nonlinear models where we dont know best starting parameter values
     curve.platt <- tryCatch(nls_multstart(
-      umol.g.hr ~ platt_model(light_value, Ps, AQY, beta, Rd),
-      data = data,
+      umol.g.hr ~ platt_model(light_value, Ps, AQY, beta, Rd_val),
+      data = fit_data,
       iter = 500, # try 500 different starting values within the range below
-      start_lower = c(Ps = max(data$umol.g.hr, na.rm = TRUE) * 0.5, # ranges of starting values
-                      AQY = 0.001, beta = 0.0001, Rd = abs(min(data$umol.g.hr, na.rm = TRUE)) * 0.5),
-      start_upper = c(Ps = max(data$umol.g.hr, na.rm = TRUE) * 3, AQY = 0.5, beta = 0.5,
-                      Rd = abs(min(data$umol.g.hr, na.rm = TRUE)) * 2),
+      start_lower = c(Ps = max(fit_data$umol.g.hr, na.rm = TRUE) * 0.5, # ranges of starting values
+                      AQY = 0.001, beta = 0.0001), 
+                      #Rd = abs(min(data$umol.g.hr, na.rm = TRUE)) * 0.5),
+      start_upper = c(Ps = max(fit_data$umol.g.hr, na.rm = TRUE) * 3, 
+                      AQY = 0.5, beta = 0.5),
+                     # Rd = abs(min(data$umol.g.hr, na.rm = TRUE)) * 2),
       lower = c(Ps = 0.000001, # cannot be 0 b/c light value/Ps cannot be divided by 0
-                AQY = 0.000001, beta = 0,Rd = 0),
+                AQY = 0.000001, beta = 0), #Rd = 0),
       supp_errors = "Y"),
       
       # if one individual fails, continue to the next one
@@ -224,7 +247,7 @@ raw_list <- list() # observed raw data for each
     coef_print <- coefs |> # make df like before
       t() |>
       as.data.frame() |> 
-      mutate(Pmax = Pmax_val, Ik = Ik_val, Iopt = Iopt_val, species = sp, species_name = sp_name, zone = z, algae_id = i,
+      mutate(Pmax = Pmax_val, Rd = Rd_val, Ik = Ik_val, Iopt = Iopt_val, species = sp, species_name = sp_name, zone = z, algae_id = i, 
              model = "Platt_photoinhibition", AIC = AIC(curve.platt))
     
     coef_list[[i]] <- coef_print # save Ps, alpha, beta, Rd, Iopt, AIC
@@ -232,7 +255,7 @@ raw_list <- list() # observed raw data for each
     # make smooth light sequence for fitted curve
     curve_df <- tibble(light_value = seq(0, 900, by = 5)) |>
       mutate(pred_rate = platt_model(light_value, Ps = coefs["Ps"], AQY = coefs["AQY"],  # photosynthetic rate predicted by Platt model
-                                     beta = coefs["beta"], Rd = coefs["Rd"]),
+                                     beta = coefs["beta"], Rd = Rd_val), # at PAR = 0, Pnet = -Rd
              species = sp, species_name = sp_name, zone = z, algae_id = i)
     
     curve_list[[i]] <- curve_df # save curve
@@ -280,7 +303,8 @@ PI_curve_summary
 ```{r}
 #| warning: false
 #| message: false
-
+#| include: false
+#| eval: false
 
 # common y-axis limits for all PI curve plots
 PI_y_limits <- range(c( PI_raw_data$umol.g.hr,
@@ -372,7 +396,12 @@ both_zones
 ```{r}
 #| warning: false
 #| message: false
-
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 6
+#| fig-width: 9
 
 PI_within_species <- ggplot() +
   geom_point(data = PI_raw_data |>  # raw individual observations in background
@@ -404,10 +433,8 @@ PI_within_species <- ggplot() +
         axis.text.x = element_text(size = 11))
 
 PI_within_species
-#ggsave(here("Output", "PI", "PI_plots", "PI_within_species"))
+#ggsave(here("Output", "PI", "PI_plots", "PI_within_species.pdf"))
 ```
-
-
 
 
 #### Within-zone: compare species  
@@ -418,6 +445,13 @@ Mean individual fitted Platt curves ± SE among individuals
 ```{r}
 #| warning: false
 #| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 6
+#| fig-width: 9
+
 
 PI_species_inshore <- ggplot() +
   geom_point(data = PI_raw_data |> # plot the raw data
@@ -432,7 +466,7 @@ PI_species_inshore <- ggplot() +
   geom_hline(yintercept = 0, linetype = 2,color = "grey50") +
   scale_color_manual(values = species_palette) +
   scale_x_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 200))+ # fix x axis breaks
-  coord_cartesian(ylim = PI_y_limits) + # y axis comparable 
+  #coord_cartesian(ylim = PI_y_limits) + # y axis comparable 
   labs(title = "Inshore Interspecific Differences", color = "Species",
        x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
        y = expression("Net photosynthesis ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")")) +
@@ -449,6 +483,12 @@ PI_species_inshore
 ```{r}
 #| warning: false
 #| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 6
+#| fig-width: 9
 
 PI_species_offshore <- ggplot() +
   geom_point(data = PI_raw_data |> # plot the raw data
@@ -462,6 +502,7 @@ PI_species_offshore <- ggplot() +
             linewidth = 1) +
   geom_hline(yintercept = 0, linetype = 2,color = "grey50") + # line for 0 net photosyn
   scale_color_manual(values = species_palette) +
+  scale_x_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 200))+
   #coord_cartesian(ylim = PI_y_limits) + # y axis comparable 
   labs(title = "Offshore Interspecific Differences", color = "Species",
        x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
@@ -475,17 +516,44 @@ PI_species_offshore
 
 ```
 
-**Combine the plots**  
+**Make one plot**  
 ```{r}
 #| warning: false
 #| message: false
+#| out-width: "90%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 8
+#| fig-width: 11
 
-PI_between_species<-PI_species_inshore + # combine plots using patchwork
-  theme(legend.position = "none") +
-  PI_species_offshore +
-  theme(legend.position = "right")
+#PI_between_species<-PI_species_inshore + # combine plots using patchwork
+  #theme(legend.position = "none") +
+  #PI_species_offshore +
+  #theme(legend.position = "right")
+
+PI_between_species <- ggplot() +
+  
+  geom_point(data = PI_raw_data, # raw observations
+             aes(x = light_value,y = umol.g.hr, color = species_name),
+             alpha = 0.15, size = 1) +
+  geom_line(data = PI_curve_summary,# mean fitted curves
+            aes(x = light_value,y = mean_rate,color = species_name),
+            linewidth = 1) +
+  geom_hline(yintercept = 0,linetype = 2, color = "grey50") + # line at 0 net photo
+  scale_x_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 200))+ # fix x axis breaks
+  facet_wrap(~ zone, nrow = 1 ) +
+  scale_color_manual(values = species_palette) +
+  labs(title = "Interspecific Differences Inshore and Offshore",
+       x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
+       y = expression("Net photosynthesis ("*mu*"mol O"[2]*" g AFDW"^-1*" h"^-1*")"), color = "Species") +
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+        axis.text.x = element_text(size = 11))
 
 PI_between_species
+#ggsave(here("Output", "PI", "PI_plots", "PI_between_species.pdf"))
 ```
 
 
@@ -497,6 +565,7 @@ PI_between_species
 * Rd
 * Ik
 * Iopt
+
 ```{r}
 #| warning: false
 #| message: false
@@ -587,6 +656,12 @@ PI_parameter_summary <- PI_parameter_summary |>
 ```{r}
 #| warning: false
 #| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 8
+#| fig-width: 11
 
 PI_parameter_plot <- ggplot() +
   
@@ -635,7 +710,9 @@ PI_parameter_plot <- ggplot() +
   facet_wrap(
     ~ parameter,
     scales = "free_y"
-  ) +
+  )+
+  scale_color_manual(values = c("inshore" = "#90E4C1","offshore" = "#31688e")) + # colors for zones
+  scale_fill_manual(values = c("inshore" = "#90E4C1","offshore" = "#31688e")) +
   
   labs(
     x = NULL,
@@ -643,7 +720,7 @@ PI_parameter_plot <- ggplot() +
     color = "Zone"
   ) +
   
-  theme_classic() +
+  theme_bw() +
   
   theme(
     axis.text.x = ggtext::element_markdown(
