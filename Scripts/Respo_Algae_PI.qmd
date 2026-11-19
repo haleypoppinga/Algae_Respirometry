@@ -37,6 +37,9 @@ if ("ggforce" %in% rownames(installed.packages()) == 'FALSE') install.packages('
 
 ### Load Libraries
 ```{r}
+#| warning: false
+#| message: false
+
 ##### Include Versions of libraries
 library(segmented)
 library(plotrix)
@@ -400,7 +403,7 @@ both_zones
 #| fig-align: "center"
 #| include: true
 #| eval: true
-#| fig-height: 6
+#| fig-height: 7
 #| fig-width: 9
 
 PI_within_species <- ggplot() +
@@ -427,13 +430,14 @@ PI_within_species <- ggplot() +
        x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
        y = expression("Net photosynthesis ("*mu*"mol O"[2]*" g"^-1*" h"^-1*")"),
        color = "Zone",fill = "Zone") +
-  theme_bw()+
+  theme_bw(base_size = 14)+
   theme(panel.grid = element_blank(),
-        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
-        axis.text.x = element_text(size = 11))
+        plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+        axis.text.x = element_text(size = 12),
+        legend.position = "top")
 
 PI_within_species
-#ggsave(here("Output", "PI", "PI_plots", "PI_within_species.pdf"))
+#ggsave(here("Output", "PI", "PI_plots", "PI_within_species.png"))
 ```
 
 
@@ -525,7 +529,7 @@ PI_species_offshore
 #| include: true
 #| eval: true
 #| fig-height: 8
-#| fig-width: 11
+#| fig-width: 12
 
 #PI_between_species<-PI_species_inshore + # combine plots using patchwork
   #theme(legend.position = "none") +
@@ -544,16 +548,17 @@ PI_between_species <- ggplot() +
   scale_x_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 200))+ # fix x axis breaks
   facet_wrap(~ zone, nrow = 1 ) +
   scale_color_manual(values = species_palette) +
+  guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
   labs(title = "Interspecific Differences Inshore and Offshore",
        x = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"),
        y = expression("Net photosynthesis ("*mu*"mol O"[2]*" g AFDW"^-1*" h"^-1*")"), color = "Species") +
-  theme_bw()+
+  theme_bw(base_size = 14)+
   theme(panel.grid = element_blank(),
-        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
-        axis.text.x = element_text(size = 11))
+        plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+        axis.text.x = element_text(size = 12))
 
 PI_between_species
-#ggsave(here("Output", "PI", "PI_plots", "PI_between_species.pdf"))
+#ggsave(here("Output", "PI", "PI_plots", "PI_between_species.png"))
 ```
 
 
@@ -584,7 +589,7 @@ PI_parameter_individuals
 
 # put parameters into long format 
 PI_parameters_long <- PI_parameter_individuals |>
-  pivot_longer(cols = c(Pmax, AQY, beta, Rd, Ik, Iopt),
+  pivot_longer(cols = c(Pmax, AQY, beta, Rd, Ik, Iopt), # columns to adjust
                names_to = "parameter", values_to = "value")
 ```
 
@@ -594,47 +599,30 @@ PI_parameters_long <- PI_parameter_individuals |>
 #| warning: false
 #| message: false
 
-# Parameter means +/- SE #####
+# parameter means +/- SE
 
 PI_parameter_summary <- PI_parameters_long |>
-  group_by(
-    species,
-    species_name,
-    zone,
-    parameter
-  ) |>
-  summarise(
-    n = sum(!is.na(value)),
-    mean = mean(value, na.rm = TRUE),
-    sd = sd(value, na.rm = TRUE),
-    se = sd / sqrt(n),
-    .groups = "drop"
-  )
+  group_by(species, species_name, zone,parameter) |>
+  summarise(n = sum(!is.na(value)), # calculate n for each parameter b/c some NA values when beta = 0
+            mean = mean(value, na.rm = TRUE), 
+            sd = sd(value, na.rm = TRUE), se = sd / sqrt(n),.groups = "drop" )
 
 #View(PI_parameter_summary)
 
-PI_parameter_table <- PI_parameter_summary |>
-  mutate(
-    mean_SE = paste0(
-      round(mean, 2),
-      " ± ",
-      round(se, 2)
-    )
-  ) |>
-  dplyr::select(
-    species,
-    species_name,
-    zone,
-    parameter,
-    n,
-    mean_SE
-  ) |>
-  pivot_wider(
-    names_from = parameter,
-    values_from = c(mean_SE, n)
-  )
+# make a table
+PI_parameter_table <- PI_parameter_summary |> 
+  mutate(mean_SE = paste0(round(mean, 2)," ± ",round(se, 2))) |> # add mean +/- SE
+  dplyr::select(species, species_name, zone, parameter, n, mean_SE ) |>
+  pivot_wider(names_from = parameter, values_from = c(mean_SE, n)) # wide format
 
-View(PI_parameter_table)
+PI_parameter_table |>
+  
+  kbl(caption = "Mean (± SE) Photosynthetic Parameters by Species and Zone",
+      col.names = names(PI_parameter_table), align = "c", booktabs = TRUE ) |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "center") #|> 
+  #save_kable(file = "PI_parameter_table.png", zoom = 2)
 ```
 
 
@@ -645,7 +633,8 @@ View(PI_parameter_table)
 #| warning: false
 #| message: false
 
-PI_parameters_long <- PI_parameters_long |>
+# species label in both tables
+PI_parameters_long <- PI_parameters_long |> 
   mutate(species_label = paste0("<i>", species_name, "</i>"))
 
 PI_parameter_summary <- PI_parameter_summary |>
@@ -661,77 +650,40 @@ PI_parameter_summary <- PI_parameter_summary |>
 #| include: true
 #| eval: true
 #| fig-height: 8
-#| fig-width: 11
+#| fig-width: 14
 
 PI_parameter_plot <- ggplot() +
-  
-  # individual parameter estimates
-  geom_point(
-    data = PI_parameters_long,
-    aes(
-      x = species_label,
-      y = value,
-      color = zone
-    ),
-    position = position_jitterdodge(
-      jitter.width = 0.15,
-      dodge.width = 0.6
-    ),
-    alpha = 0.4,
-    size = 1.5
-  ) +
-  
-  # mean +/- SE
-  geom_errorbar(
-    data = PI_parameter_summary,
-    aes(
-      x = species_label,
-      ymin = mean - se,
-      ymax = mean + se,
-      color = zone
-    ),
-    position = position_dodge(width = 0.6),
-    width = 0.15,
-    linewidth = 0.7
-  ) +
-  
+  geom_point(data = PI_parameters_long,  # individual parameter estimates
+             aes(x = species_label,y = value,color = zone),
+             position = position_jitterdodge(jitter.width = 0.15,
+                                              dodge.width = 0.6),
+             alpha = 0.4, size = 1.5)+
+  geom_errorbar(data = PI_parameter_summary, # mean +/- SE 
+                aes(x = species_label, ymin = mean - se, # adds line at meanand error for each species
+                    ymax = mean + se,  color = zone),
+                position = position_dodge(width = 0.6),
+                width = 0.15, linewidth = 0.7) +
   # mean
-  geom_point(
-    data = PI_parameter_summary,
-    aes(
-      x = species_label,
-      y = mean,
-      color = zone
-    ),
-    position = position_dodge(width = 0.6),
-    size = 3
-  ) +
-  
-  facet_wrap(
-    ~ parameter,
-    scales = "free_y"
-  )+
+  geom_point(data = PI_parameter_summary, # mean of all parameters
+             aes(x = species_label,y = mean,color = zone),
+             position = position_dodge(width = 0.6), size = 3)+
+  facet_wrap(~ parameter,  scales = "free_y")+  # panel for each param
   scale_color_manual(values = c("inshore" = "#90E4C1","offshore" = "#31688e")) + # colors for zones
   scale_fill_manual(values = c("inshore" = "#90E4C1","offshore" = "#31688e")) +
   
-  labs(
-    x = NULL,
-    y = "Parameter value",
-    color = "Zone"
-  ) +
-  
-  theme_bw() +
-  
-  theme(
-    axis.text.x = ggtext::element_markdown(
-      angle = 45,
-      hjust = 1
-    ),
-    strip.text = element_text(face = "bold")
-  )
+  labs(x = NULL, y = "Parameter Value", color = "Zone", 
+       title = "PFFD Parameter Values") +
+  theme_bw(base_size = 16) +
+  theme(axis.text.x = ggtext::element_markdown(angle = 50, hjust = 1), # angle the species names
+        plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+        strip.text = element_text(face = "bold"),
+        legend.position = "top")
+
+## ADD UNITS?!?!?!
 
 PI_parameter_plot
 
+#ggsave(here("Output", "PI", "PI_plots", "PI_parameter_plot.png"))
 ```
 
 

@@ -24,8 +24,9 @@ library(tidyverse)
 library(here)
 library(dplyr)
 library(ggrepel) # for repelling labels
-library(climaemet)
 library(patchwork)
+library(purrr)
+library(climaemet)
 library(ggplotify)
 library(magick)
 library(grid)
@@ -38,9 +39,170 @@ library(cmocean) # colors
 ```
 
 
+## PAR  
+**PAR Data**  
+
+**Load and Clean Data**  
+Create a path to PAR folder and make a function to clean all the columns and dataset. This was needed in Algae_Enviro_light.qmd so doing it here too.  
+```{r}
+#| warning: false
+#| message: false
+
+PAR_path<-here("Data","Hobo_Files", "PAR2026") # PAR data folder
+
+PARData <- function(file) { # function to clean PAR data
+  df <- read.csv(file)
+  df <- df |>
+    dplyr::select(Date_Time = starts_with("Date.Time"),
+           Underwater_PAR = starts_with("Underwater.PAR"),
+           Air_PAR = starts_with("In.Air.PAR"), # offshore PAR data doesnt have air par column so needed to do this
+           Temperature_C = starts_with("Temperature"),
+           Tilt_deg = starts_with("Tilt")) |> 
+    #set_names(c("Date_Time","Underwater_PAR","Air_PAR","Temperature_C","Tilt_deg",
+                #"DLI_Underwater","Accumulated_PAR")) |> # rename columns
+    mutate(Date_Time = mdy_hms(Date_Time, tz = "Pacific/Honolulu"), # convert time so its the same as other files
+      across(-Date_Time, ~ parse_number(as.character(.x))))
+  
+  if (!"Air_PAR" %in% names(df)) { # adds Air_PAR column b/c offshore file is missing it, this helps for the calibration code later
+    df$Air_PAR <- NA_real_
+  }
+  
+  return(df)
+}
+```
+
+
+**Read Data**  
+```{r}
+#| warning: false
+#| message: false
+
+PAR_in<-PARData(file.path(PAR_path, "PAR_IN_22491170.csv")) |> 
+  mutate(source_file = "PAR_IN_22491170.csv") # add a source file column
+
+PAR_off<-PARData(file.path(PAR_path, "PAR_OFF_22491164.csv")) |> 
+  mutate(source_file = "PAR_OFF_22491164.csv") # add a source file column
+
+PARData_all <- bind_rows(PAR_in, PAR_off) # combine datasets
+
+# create zones column and average every 15 min
+PARData_5min <- PARData_all |>
+  mutate(zone = case_when(source_file == "PAR_IN_22491170.csv" ~ "Inshore",
+                          source_file == "PAR_OFF_22491164.csv" ~ "Offshore",
+                          TRUE ~ NA_character_)) |> 
+  mutate(Date_Time5min = floor_date(Date_Time, unit = "5 minutes")) |>  # round to 15 minutes
+  group_by(source_file, zone, Date_Time5min) |> # group by source file to make sure measurements from diff loggers not averaged together
+  summarise(mean_PAR = mean(Underwater_PAR, na.rm = TRUE), # get means, remove nas
+            sd_PAR = sd(Underwater_PAR, na.rm = TRUE)) # get sd to know how much light varied
+
+#PAR_files <-list.files(PAR_path, pattern = "\\.csv$", full.names = TRUE) # csv file list
+#PAR_files<-PAR_files[basename(PAR_files)!="PAR_OFF_22491164_cal2.csv"] # exclude august calibration file
+#PARData_all<-purrr::map_dfr(PAR_files, ~PARData(.x)) |> # loop through files and combine them with map_drf
+#  mutate(source_file = basename(.x)) # create a column with source file name to keep track
+```
+
+
+#### PAR Plot  
+```{r}
+#| warning: false
+#| echo: false
+#| message: false
+#| out-width: "80%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 7
+#| fig-width: 10
+
+# plot PAR over 24 hours
+PAR_24hour<- PARData_5min |> 
+  filter(Date_Time5min >= ymd_hms("2026-07-17 8:45:00", tz = "Pacific/Honolulu"),
+         Date_Time5min < ymd_hms("2026-07-18 7:30:00", tz = "Pacific/Honolulu")) |> # only data between these times
+  ggplot(aes(x = Date_Time5min, y = mean_PAR, color = zone))+
+  geom_line(linewidth = 1, alpha = 0.6) +
+  #facet_wrap(vars(Month = month(Date_Time, label = TRUE, abbr = FALSE)), # make 2 rows of plots by month
+             #scales = "free_x",ncol = 1) +
+  scale_color_manual(values = c("Inshore" = "#ffa700","Offshore" = "#ff4d00")) + # light colors
+  coord_cartesian(ylim = c(0, 2500))+ # y-axis max larger
+  guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
+  labs(x = "Date", y = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"), #"PAR (µmol/m²/s)"
+       title = "Underwater Light (PAR) over 24 Hour Tidal Cycle",
+       subtitle = "Paikō Beach, July 2026",
+       color = "Zone") +
+  theme_bw(base_size = 18) +
+  theme(plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
+        plot.subtitle = element_text(size = 16, hjust = 0.5),
+        #axis.text.x = element_text(angle = 45, hjust = 1), # angle x axis labels
+        legend.position = "top")
+
+PAR_24hour
+
+#ggsave(here("Output","EnviroParameters", "PAR_24hour2026.png")) 
+```
+
+
+### Temperature Data from PAR HOBO Logger  
+```{r}
+#| warning: false
+#| echo: false
+#| message: false
+#| out-width: "80%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 7
+#| fig-width: 10
+
+PARData_all<-PARData_all |> # create zone column
+  mutate(zone = case_when(source_file == "PAR_IN_22491170.csv" ~ "Inshore",
+                          source_file == "PAR_OFF_22491164.csv" ~ "Offshore",
+                          TRUE ~ NA_character_))
+
+# Plot temperature from PAR loggers
+Temp_PAR_24hour <- PARData_all |>
+  filter(Date_Time >= ymd_hms("2026-07-17 8:45:00", tz = "Pacific/Honolulu"),
+         Date_Time < ymd_hms("2026-07-18 7:30:00", tz = "Pacific/Honolulu")) |> # only data between these times
+  ggplot(aes(x = Date_Time, y = Temperature_C, color = zone)) +
+  geom_line(linewidth = 1, alpha = 0.8) +
+  scale_color_manual(values = c("Inshore" = "#1B9E77","Offshore" = "#31688E")) +
+  scale_x_datetime(date_breaks = "6 hours",date_labels = "%b %d\n%H:%M",
+    timezone = "Pacific/Honolulu") +
+  labs(x = "Date", y = expression("Temperature ("*degree*"C)"),
+       title = "Temperature over 24-Hour Deployment",
+       subtitle = "PAR HOBO Logger",color = "Zone") +
+  theme_bw(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+        plot.subtitle = element_text(size = 12, hjust = 0.5),
+        legend.position = "top")
+
+Temp_PAR_24hour
+#ggsave(here("Output","EnviroParameters", "Temp_PAR_24hour2026.png")) 
+```
+
+
+
+
+
+
+## Water Level  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Tilt  
 
-##### Creating New CSV Files {.hidden .unumbered .unlisted}  
+**Creating New CSV Files** {.hidden .unumbered .unlisted}  
 Trimming down the tilt meter data to one hour after deployment and one hour before retrieval of the tilt meters.  
 
 Making sure all data is captured at one minute intervals.  
@@ -53,48 +215,64 @@ All data speed units are in cm/s
 *This code does not need to be run again!*  
 
 **Tilt Data**  
+
+**Read and Clean Files**  
 ```{r}
 #| include: false
 #| eval: false
 #| echo: false
 
 # Current Inshore 2026
-read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN.csv")) %>%
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN_Current.csv")) %>%
   set_names(c("DateTime","Speed","Heading","Velocity_N","Velocity_E")) %>% # Changing the headers in the dataframe
   mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% #Changing the date to character using lubridate
-  filter(between(DateTime, ymd_hms("2026-07-17 08:30:00"), ymd_hms("2026-07-18 07:20:00"))) %>% #Filtering between the dates that we want data from
-  write_csv(file ="Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_IN2026.csv") #Creating new CSV File with filtered dates
+  filter(between(DateTime, ymd_hms("2026-07-17 09:00:00"), ymd_hms("2026-07-18 07:30:00"))) %>% #Filtering between the dates that we want data from
+  write_csv(here(file ="Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_IN2026.csv")) #Creating new CSV File with filtered dates
 
 # Current Offshore 2026
-read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN.csv")) %>%
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_OFF_Current.csv")) %>%
   set_names(c("DateTime","Speed","Heading","Velocity_N","Velocity_E")) %>% 
   mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% 
-  filter(between(DateTime, ymd_hms("202-07-17 08:30:00"), 
-                 ymd_hms("2025-07-18 07:20:00"))) %>%
-  write_csv(file ="Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_OFF2026.csv")
+  filter(between(DateTime, ymd_hms("2026-07-17 09:00:00"), ymd_hms("2026-07-18 07:15:00"))) %>%
+  write_csv(here(file ="Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_OFF2026.csv"))
 ```
 
-**Temperature Data**  
+**Temperature Data from Tilt**  
 ```{r}
 #| include: false
 #| eval: false
 #| echo: false
 
 # Temp Inshore 2026
-read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN_temp.csv")) %>%
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN_Temperature.csv")) %>%
  set_names(c("DateTime","Temperature")) %>% #Changing the headers in the dataframe
   mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% #Changing the date to character using lubridatde
-  filter(between(DateTime, ymd_hms("2026-07-17 08:30:00"), ymd_hms("2026-07-18 07:20:00"))) %>%  #Filtering between the dates that we want data from
+  filter(between(DateTime, ymd_hms("2026-07-17 09:00:00"), ymd_hms("2026-07-18 07:30:00"))) %>%  #Filtering between the dates that we want data from
   write_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_IN_temp2026.csv")) #Creating new CSV File with filtered dates
 
 # Temp Offshore 2026
-read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN_temp.csv")) %>%
+read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt1_IN_Temperature.csv")) %>%
   set_names(c("DateTime","Temperature")) %>% 
   mutate(DateTime = lubridate::ymd_hms(DateTime)) %>% 
-  filter(between(DateTime, ymd_hms("2026-07-17 08:30:00"), ymd_hms("2026-07-18 07:20:00"))) %>%  
+  filter(between(DateTime, ymd_hms("2026-07-17 09:00:00"), ymd_hms("2026-07-18 07:15:00"))) %>%  
   write_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/Tilt_OFF_temp2026.csv"))
 ```
 
+**Meta Data**  
+```{r}
+#| warning: false
+#| message: false
+
+TiltMetaData <- read_csv(here("Data/Hobo_Files/24Hour2026/Enviro24Hour_meta.csv"))
+
+
+LatLong <- TiltMetaData |> 
+  filter(logger == "TCM-4 Tilt Meter") |> #only tilt meter meta
+  dplyr::select(logger, zone, lat_dd, long_dd) |> #only these columns
+  drop_na()
+  
+
+```
 
 **Tide Data**    
 Tide data was downloaded from:   <https://www.gsi.go.jp/kanshi/tide_data_21_e.html>  
@@ -124,23 +302,22 @@ Most of the tilt meters were set to the *Typical* configuration:
 
 For those tilt meters that were not configured this way, data was condensed to one minute intervals. All data was trimmed down to one hour after deployment time and one hour before retrieval time.  
 
-Note that all data has been adjusted for the Magnetic Declination of -5.85 West within the Domino app.  
+Note that all data has been adjusted for the Magnetic Declination of +9.27˚ East within the Domino app.  
 
 All data speed units are in cm/s  
 
-##### Read Data  
-
+**Read Data**  
 ```{r}
 #| message: false
 #| echo: false
 
 #Load Current Data
-TiltIN2026 <- read_csv(here("Data", "Hobo_Files", "Tilt_IN2026.csv"))
-TiltOFF2026 <- read_csv(here("Data", "TiltMeterData", "Tilt_OFF2026.csv"))
+TiltIN2026 <- read_csv(here("Data", "Hobo_Files", "24Hour2026", "TiltMeter", "Tilt_IN2026.csv"))
+TiltOFF2026 <- read_csv(here("Data", "Hobo_Files", "24Hour2026", "TiltMeter", "Tilt_OFF2026.csv"))
 
 #Load Temp Data
-TiltIN_Temp2026<- read_csv(here("Data", "Hobo_Files", "Tilt_IN_temp2026.csv"))
-TiltOFF_Temp2026<- read_csv(here("Data", "Hobo_Files", "Tilt_OFF_temp2026.csv"))
+TiltIN_Temp2026<- read_csv(here("Data", "Hobo_Files", "24Hour2026", "TiltMeter","Tilt_IN_temp2026.csv"))
+TiltOFF_Temp2026<- read_csv(here("Data", "Hobo_Files", "24Hour2026", "TiltMeter", "Tilt_OFF_temp2026.csv"))
 
 #Load Tide Data
 TideData2026 <- read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/TideData_2026.csv"))
@@ -155,7 +332,7 @@ TideData2026 <- read_csv(here("Data/Hobo_Files/24Hour2026/TiltMeter/TideData_202
 ```
 
 
-##### Clean the Data  
+**Clean the Data**  
 
 *Tilt Meter Data*  
 Created a function *Tilt_Data_fun* to add a tilt meter name column, separate the data and time into two columns, and add a m/s unit column.  
@@ -192,9 +369,15 @@ TiltOFF_clean <- Tilt_Data_fun(TiltOFF2026, "TiltOFF")
 ```
 
 
-We then join the data to combine all 8 Tilt Meter, Longitude and Latitude data, and add a *Site* column  
+We then join the data to combine all Tilt Meter data, Longitude and Latitude data
 ```{r}
+JoinedData <- rbind(TiltIN_clean, TiltOFF_clean)
+  
 
+JoinedData<-JoinedData |> 
+  mutate(zone = case_when(TiltMeter == "TiltIN" ~ "inshore",
+                          TiltMeter == "TiltOFF" ~ "offshore")) |>  # create new zone column
+   left_join(LatLong, by = "zone")
 ```
 
 
@@ -214,6 +397,388 @@ sum(JoinedData$Speed >= .5) #Counting the number of points above .5
 sum(JoinedData$Speed> 25.01416) #Number of points above the upper bound, 0.25, 145 points
 
 table(cut(JoinedData$Speed_m , seq(0, .25,.05), include.lowest = TRUE)) ##Showing me the different bins and how many data points I have in each one
+```
+For our time series plots we want to average the speed, heading, Velocity_N, and Velocity_E columns per hour. Filtering out the 99.9% upper bound which is anything above **25.01416** cm/s. We will make new *hourly* data frames. We will do the same for the JoinedData so that we are analyzing everything on an hourly  
+
+```{r}
+#| echo: false
+
+HourlyTilt_Data_fun <- function(df){  #Function to add a tilt name column and separate data and time column 
+ df %>% 
+    
+    group_by(DateTime = floor_date(DateTime, "hour"), TiltMeter) %>% #New datetime that is rounded to the start of each hour
+  summarise(across(where(is.numeric), mean, na.rm = TRUE),
+    .groups = "drop") %>%
+    filter(Speed <=  25.01416) 
+}
+
+TiltINDataHourly <- HourlyTilt_Data_fun(TiltIN_clean)
+TiltOFFDataHourly <- HourlyTilt_Data_fun(TiltOFF_clean)
+JoinedDataHourly <- HourlyTilt_Data_fun(JoinedData)
+```
+
+
+Created a function *Tilt_Temp_fun* to add a tilt meter name column, and separate the data and time into two columns.  
+
+```{r}
+#| echo: false
+
+Tilt_Temp_fun <- function(df, tilt_name){ 
+df %>%
+    
+separate(col = DateTime, #Choose the column that you want separated
+         into = c("Date", "Time"), # Separate it into two columns "Data" and "Time"
+         sep = " ", #What are the two separated by 
+         remove = FALSE) %>% #Keep the orginial DateTime Column    
+  mutate(DateTime = lubridate::ymd_hms(DateTime), #Set datetime
+         Date = lubridate::ymd(Date), #Set Date
+         Time = lubridate::hms(Time), 
+   TiltMeter = tilt_name, na.rm = TRUE) %>%
+
+    dplyr::select(TiltMeter, everything()) 
+  
+}
+
+TiltINTempData <- Tilt_Temp_fun(TiltIN_Temp2026, "TiltIN")
+TiltOFFTempData <- Tilt_Temp_fun(TiltOFF_Temp2026, "TiltOFF")
+```
+
+Joining all the temperature data together, the lat long data, and creating a *Site* column. We don't make an hourly temperature datframe because we can easily plot this as continuous data.  
+
+```{r}
+#| echo: false
+
+JoinedTempData <- rbind(TiltINTempData, TiltOFFTempData)
+
+JoinedTempData <- JoinedTempData |> 
+  mutate(zone = case_when(TiltMeter == "TiltIN" ~ "inshore",
+                          TiltMeter == "TiltOFF" ~ "offshore")) |>  # create new zone column
+   left_join(LatLong, by = "zone")
+```
+
+
+### Tide Data
+
+Making a new tide dataframe and calling it *TideDataHourly* the tide data is already hourly but we are combing the date and time into one column to match the other dataframes. We are also changing the sealevel from mm to meters in a new column *Sealevel_m*
+
+```{r}
+#| echo: false
+
+ TideDataHourly <- TideData %>%
+   mutate(DateTime = ymd_hms(paste(Date, Hour, "00:00")), #Combining Date and time into one column 
+          Sealevel_m = Sealevel_mm / 1000) %>%
+    dplyr::select(DateTime, everything())
+
+```
+
+
+**Visualizing Data**  
+```{r}
+#| echo: false
+#| results: false
+#| output: false
+
+ggplot(JoinedData, aes(x = DateTime, y = Speed_m)) +
+  geom_point() +
+   facet_wrap(~TiltMeter)
+
+JoinedData
+```
+
+**Prax Ellipse Function**  
+
+This code is converted from Matlab Katie Smith Via Christina Comfort.  
+
+```{r}
+prax_ellipse_fct <- function(u, v) {
+  
+  N <- length(u)
+  
+#Remove the mean over time, to leave jut the "pertubations"
+  meanu <- mean(u)
+  meanv <- mean(v)
+  up <- u - meanu
+  vp <- v - meanv
+  
+#This has to do with the mean variance (covariance matrix elements)
+  # (1/N) * sum(vector * vector) is equivalent to N * var() but using N
+  # Instead of N-1 fo rthe divisor in the variance/covariance calculation 
+  # R's var() and cov() use N-1, so we calculate it manually as in Matlab. 
+  
+  c11 <- (1/N) * sum(up * up)
+  c22 <- (1/N) * sum(vp *vp)
+  c12 <- (1/N) * sum(up * vp)
+  
+  # This is the angle to rotate the vecotrs (in radians)
+  # R's atan2 is the same as Matlab's
+  
+   phi <- 0.5 * atan2(2 *c12, c22 - c11) #+ pi/2
+  # phi_Deg <- (90 - phi * 180/pi) %% 360
+  # major_axis_angle <- phi_Deg
+  
+  #Eignevalues of a matrix of those values calculated above
+  # R's eigen function returns a list with "values" (eigenvalues) and "vectors" (eigenvectors)
+  
+  cov_matrix <- matrix(c(c11, c12, c12, c22), nrow=2, byrow = TRUE)
+  eig_result <- eigen(cov_matrix)
+
+  #Extract eigenvalues
+  # The **values** vector in the eig_result is already sorted in decreasing order by 
+  lambda1 <- eig_result$values[1] #Major axis variance (largest eigenvalue)
+  lambda2 <- eig_result$values[2] # Minor axis variance (smallest eigenvalue)
+  
+  #Here we turn the eigenvalues (which represetn the variance along the major and minor axes into varaiables which will make tidal ellipses)
+  
+  a <- sqrt(lambda1) #Major axis semi-length
+  b <- sqrt(lambda2) # Minor axis semi-length
+  
+  #Create the parameter 't"
+  
+  t <- seq(0, 2 * pi, length.out = 100)
+  
+  # Calculate the ellipse coordinates (rotated and not centered/mean -subtracted yet)
+  #Note: The orginal Matlab script has commented out adding 'meanu' to 'meanv', which would typically center teh ellipse on the mean velocity
+  # Matlab's 'phi(1)' is used because 'phi' is an array of size4 1. In R, 'phi' is a scalar
+  
+  x_base <- a * cos(t)
+  y_base <- b * sin(t)
+  
+
+  
+ # x_rot <- a * cos(t) * cos(pi/2 - phi) - b * sin(t) * sin(pi/2 - phi)
+ #y_rot <- a * cos(t) * sin(pi/2 - phi) + b * sin(t) * cos(pi/2 - phi)
+  
+  # Add the mean back to center the ellipse (if desired, based on the commented out Matlab line)
+  # For consistency with the original script's output variable names, we'll use x_rot and y_rot
+  # as 'x' and 'y', and include the mean adjustment as an option in the comments.
+  # If you want the ellipse centered at the mean velocity:
+  # x <- x_rot + meanu
+  # y <- y_rot + meanv
+   x_rot <- x_base * cos(phi) - y_base * sin(phi)
+   y_rot <- x_base * sin(phi) + y_base * cos(phi)
+  
+  #The function will return the angle phi, and the coordinates x and y 
+  return(list(phi = phi, x = x_rot, y = y_rot)) 
+  
+}
+
+```
+
+
+#### Current Ellipses
+
+We are again converting the matlab script and we are going to use the joined data to facet plot all the current ellipses together.  
+
+```{r}
+#| warning: false
+#| message: false
+#| out-width: "70%"
+#| fig-align: "center"
+#| include: true
+#| eval: true
+#| fig-height: 8
+#| fig-width: 8
+
+
+TiltEllipses <- JoinedData %>% 
+  group_by(TiltMeter, zone, long_dd) %>% 
+  summarise( ellipse = list({ results <- prax_ellipse_fct(Velocity_N, Velocity_E) 
+    
+    phi_deg <- (90 - (results$phi * 180 / pi))  #alls us to wrap angles into a 0-360 range
+    
+    phi_deg <- ifelse(phi_deg > 90, phi_deg - 180, phi_deg)
+    
+    tibble( x = results$x, y = results$y, phi_deg = phi_deg ) }),
+    
+    .groups = "drop" ) %>% 
+  unnest(ellipse) 
+
+TiltEllipses <- TiltEllipses %>% 
+  group_by(TiltMeter) %>%
+  mutate(angle_label = round(unique(phi_deg), 1)) 
+
+#Make a table so we can put all the tilt meter data together
+# tibble(
+#   Site = JoinedData$TiltMeter, 
+#   x = results$x, 
+#   y = results$y
+# )
+
+#Creating a dataframe to plot the ellipse coodinates 
+# ellipse_data <- data.frame(x = xx, y = yy)
+
+#Creating gg plot 
+
+AllEllipsesPlot <- ggplot(TiltEllipses, aes( x = x, y = y, color = zone, Lon)) +
+  geom_path() + #Have geom label, and have geom point next to it north 
+  #facet_wrap(~ paste0(TiltMeter, "\n", angle_label, "˚ cw from north"), scales = "fixed") +
+  scale_color_manual(
+      values = c("lightblue", "blue","orange" ,"green2","red", "darkred", "magenta", "purple")) +
+  labs(
+
+    x = 'u velocity (cm/s)',
+    y = 'v velocity (cm/s)'
+  ) +
+# Enforce equal scale (axis equal equivalent)
+  coord_fixed(ratio = 1) +
+# Set the defined limits
+  xlim(-10, 10) +
+  ylim(-10, 10) +
+  
+  labs(color = "Zone") +
+  
+  # Apply a clean theme
+  theme_bw(base_size = 16) +
+  theme(
+      legend.position = "bottom",
+      text = element_text(face = "bold", size =14),
+      legend.title = element_text(size = 12), 
+      plot.subtitle = element_text(hjust = 1))
+
+# Display the plot
+AllEllipsesPlot
+#ggsave(here("Output", "EnviroParameters", "CurrentVectors.png"))
+        # width = 10, height = 5)
+
+```
+
+### Flow, Temperature, and Tide Data ???? figure out
+
+The data can be viewed on an interactive map on [GoogleEarth](https://earth.google.com/web/@26.48013127,127.82743887,-0.56086902a,35635.32918753d,30.0006467y,0.00441429h,0.02513031t,0r/data=CgRCAggBMikKJwolCiExdXZGM3BDQ295VHE0WTVFZTlaaURFdXdGamZKX0ZaamggAToDCgEwQgIIAEoHCPWM-SYQAQ)
+
+-   **Feather Plot:** Time series showing the average velocity in cm/s. A positive *Velocity North* (blue) indicates a north flow direction, a negative *Velocity North* (blue) is a south flow direction. A positive *Velocity East* (red) is a east flow direction, a negative *Velocity East* (red) is a west flow direction.
+
+-   **Windrose Plot:** Represents the current speed and direction. The longer the pie cut is in a specific direction is the more dominant current direction. The colors represtent the current speeds in cm/s. The majority current speed at all sites was between 0-5 cm/s.
+
+-   **Temperature Plot:** A line graph showing all temperature. All sites had an increase in temperature around August 5th and a decrease in temperature around August 12th. This may be due to nearby typhoons:
+
+
+-   **Tide Plot:** Continuous line graph of the sealevel in meters that was captured every hour at the Okinawa Tide station.
+
+```{r}
+#| eval: false
+
+
+Velocity_TidePlot_fun <- function(Tiltdf, FeatherPlotname, Tempdf, TempPlotname, Tiltdf2,  AverageSpeed, WindrosePlotname) {
+  
+time_limits <- range(Tiltdf$DateTime, na.rm = TRUE)
+
+FeatherPlot <- ggplot(Tiltdf, aes( DatetTime, y = 0)) +
+ 
+  geom_segment(aes( x = DateTime, y = 0, 
+                    xend = DateTime, 
+                    yend = Velocity_N, #Makes the arrows point up/down
+                    color = "Velocity North"), 
+               
+               lineend = "round" ,
+               linewidth = 1,
+               alpha = 0.5) +
+  
+  geom_segment(aes( x = DateTime, y = 0,
+                    xend = DateTime, #Makes the arrows lean left/right
+                    yend = Velocity_E, #Makes the arrows point up/down
+                    color = "Velocity East"), 
+               #arrow = arrow(length = unit(0.2, "cm")),
+               linewidth = 1, 
+               alpha = 0.25) +
+  geom_point(aes(x = DateTime, y = Velocity_N), color = "blue4", size = 0.5) +
+  geom_point(aes(x = DateTime, y = Velocity_E), color = "coral2", size = 0.5) +
+  
+  scale_color_manual(name = "Velocity Direction", 
+                     values = c("Velocity North" = "blue4", "Velocity East" = "coral2")) +
+  
+   scale_x_datetime(limits = time_limits, 
+                   date_breaks = "2 day", 
+                   minor_breaks = "1 day", 
+                   date_labels = ("%b %d")) +
+ 
+  labs( x = "Date",
+    y = "Velocity (cm/s)") +
+  theme_minimal() +
+   theme( #legend.position = "inside", #axis.text.x = element_text(angle = 45, hjust =1) +
+        #legend.position.inside = c(0.0, 0.1), 
+        legend.box.background = element_rect(color = "black"), 
+        #legend.key.size = unit(0.1, "cm"), 
+           axis.text.x = element_text(angle = 45, hjust =1))
+     
+
+} 
+
+#Velocity_TidePlot_fun(TiltINDataHourly, FeatherPlotname = "TiltINVelocity.png", TiltIN_Temp2026, TempPlotname = "TiltINTemp.png", Tilt1DataHourly, AverageSpeed = "Average Speed: 1.74 cm/s", WindrosePlotname = "Windrose1.jpeg")
+# ggsave(here("Output","TiltMeterData", "Feather Plots", FeatherPlotname))
+```
+
+
+##### Summmary Stats
+
+Degrees to compass heading function
+
+```{r}
+degrees_to_compass <- function(degrees) {
+  # Normalize degrees to be within 0-360
+  degrees <- degrees %% 360
+
+  # Define compass directions and their corresponding degree ranges
+  directions <- c("N", "NE", "E", "SE", "S", "SW", "W", "NW", "N")
+  breaks <- c(0, 22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5, 360)
+
+  # Find the correct direction based on the degree value
+  # The findInterval function returns the index of the interval containing each element of 'degrees'.
+  # We subtract 1 from the index because the 'directions' vector has N at index 1 and 9, but we only need one N.
+  # The last break (360) is effectively the same as 0 for N.
+  compass_heading <- directions[findInterval(degrees, breaks)]
+
+  return(compass_heading)
+}# Define compass directions and their corresponding degree ranges
+  directions <- c("N", "NE", "E", "SE", "S", "SW", "W", "NW", "N")
+  breaks <- c(0, 22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5, 360)
+```
+
+
+```{r}
+#| fig-cap: "Table of the minimum, maximum and average current speeds collected by each of the tilt meters by zone. All sites had a souther current direction on average. Highlighted rows are the sites we are considering for long-term monitoring."
+
+Means<- JoinedData %>%
+  group_by(zone) %>%
+  filter(Speed <=  25.01416) %>%
+  summarise(MinSpeed = min(Speed, na.rm = TRUE), 
+            MaxSpeed = max(Speed, na.rm = TRUE),
+            MeanSpeed = mean(Speed, na.rm = TRUE), 
+            MeanFlowDir = mean(Heading, na.rm = TRUE) ) %>%
+ mutate(AverageDirection = degrees_to_compass(MeanFlowDir)) %>%
+  mutate_if(is.numeric, round, 2) %>%
+    mutate(MeanFlowDir = paste0(MeanFlowDir, "˚")) %>%
+  arrange(zone) #Reorder so that the means are from lowest ot highest speed
+
+MeansFlow <- Means %>% rename(Zone = zone)
+MeansFlow
+#write.csv(MeansFlow, here("Data/SfM/FlowMetrics.csv"), row.names = FALSE)
+
+#table???
+#   kbl(Means, format = "html", col.names = c("Zone", "Min Speed (cm/s)", "Max Speed (cm/s)", "Mean Speed (cm/s)", "Mean Flow Direction ˚", "Mean Direction ")) %>% #Giving the average speed m/s of each tilt meter
+#  kable_classic() %>%
+#     kable_styling(full_width = F, position = "center") %>% 
+#      row_spec(c(2, 4, 6), bold = TRUE, color = "black", background = "lightyellow") #Highlight oki3, 7, 11
+   
+```
+
+```{r}
+#| fig-cap: "Table of the minimum, maximum, and average temperatures collected by each of the tilt meters by site. All sites had an average temperature of 29˚C and experienced a 3˚C temperature fluctuation within the two weeks during deployment. Highlighted rows are the sites we are considering for long-term monitoring."
+
+TempMeans <- JoinedTempData %>%
+  group_by(zone) %>%
+
+  summarise(minTemp = min(Temperature),maxTemp =  max(Temperature), meanTemp = mean(Temperature)) %>%
+  mutate_if(is.numeric, round, 2)
+
+TempMeans <- TempMeans %>% rename(Zone = zone)
+#write.csv(Temp, here("Data/SfM/TempMeans.csv"), row.names = FALSE)
+
+TempMeans
+#kbl(TempMeans, col.names = c("Site", "Min Temperature", "Max Temperature", "Mean Temperature")) %>%
+ # kable_classic()  %>%
+  #kable_styling(full_width = FALSE) %>%
+  #row_spec(c(2, 4, 6), bold = TRUE, color = "black", background = "lightyellow")
 ```
 
 

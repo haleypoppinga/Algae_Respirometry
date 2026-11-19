@@ -70,7 +70,7 @@ HoboData<- function(file) { # create a funciton to edit all the csv files so the
 }
 ```
 
-#### Read and Clean PAR Data
+#### Read and Clean PAR Data  
 ```{r}
 #| warning: false
 #| message: false
@@ -166,6 +166,9 @@ Notes:
 #### Estimated PAR for all data  
 Added new column to datasets 
 ```{r}
+#| warning: false
+#| message: false
+
 HoboData_off<-HoboData_off |> #convert offshore data to PAR to test
   mutate(PAR_estimate = predict(mod_off, newdata = HoboData_off)) 
 
@@ -175,6 +178,22 @@ HoboData_in<-HoboData_in |> #convert inshore data to PAR
 HoboData_all<-HoboData_all |> #convert offshore data to PAR to test
   mutate(PAR_estimate = predict(mod_off, newdata = HoboData_all)) 
 ```
+
+#### Average into 15 minute intervals  
+```{r}
+#| warning: false
+#| message: false
+
+# create a column for zone to differentiate the hobo datasets
+HoboData_15min<-HoboData_all |> 
+  mutate(zone = case_when(str_detect(source_file, "^Hobo_IN") ~ "Inshore", # all files with "Hobo_IN" name as inshore
+                          str_detect(source_file, "^Hobo_OF") ~ "Offshore")) |> 
+  mutate(Date_Time15min = floor_date(Date_Time, unit = "15 minutes")) |>  # round to 15 minutes
+  group_by(source_file, zone, Date_Time15min) |> # group by source file to make sure measurements from diff loggers not averaged together
+  summarise(mean_PAR = mean(PAR_estimate, na.rm = TRUE), # get means, remove nas
+            sd_PAR = sd(PAR_estimate, na.rm = TRUE)) # get sd to know how much light varied
+```
+
 
 
 ### Plot the Light Data  
@@ -188,34 +207,29 @@ HoboData_all<-HoboData_all |> #convert offshore data to PAR to test
 #| fig-cap: "Figure # shows light (PAR) over time between inshore and offshore zones at Paiko, Maunalua Bay."
 #| include: true
 #| eval: true
-#| fig-height: 6
-#| fig-width: 8
-
-# create a column for zone to differentiate the hobo datasets
-HoboData_all<-HoboData_all |> 
-  mutate(zone = case_when(str_detect(source_file, "^Hobo_IN") ~ "Inshore", # all files with "Hobo_IN" name as inshore
-                          str_detect(source_file, "^Hobo_OF") ~ "Offshore"))
+#| fig-height: 9
+#| fig-width: 5
 
 # plot calculated PAR (from calibration) over time
-PaikoLight<-HoboData_all |> 
+PaikoLight<-HoboData_15min |> 
   filter(!is.na(zone)) |> # filter by zone
-  ggplot(aes(x = Date_Time, y = PAR_estimate,
+  ggplot(aes(x = Date_Time15min, y = mean_PAR,
            color = zone, group = interaction(zone, source_file))) + # separate lines for gaps in data over time
   geom_line(linewidth = 0.25, alpha = 0.6) +
-  facet_wrap(vars(Month = month(Date_Time, label = TRUE, abbr = FALSE)), # make 2 rows of plots by month
-             scales = "free_x",ncol = 2) +
+  facet_wrap(vars(Month = month(Date_Time15min, label = TRUE, abbr = FALSE)), # make 2 rows of plots by month
+             scales = "free_x",ncol = 1) +
   scale_color_manual(values = c("Inshore" = "#e6cc00","Offshore" = "#e69b00")) + # light colors
   coord_cartesian(ylim = c(0, 2100))+ # y-axis max larger
-  #scale_x_datetime(date_breaks = "2 weeks",date_labels = "%b %d",timezone = "Pacific/Honolulu") + # x-axis dates 
+  scale_x_datetime(date_breaks = "3 days",date_labels = "%b %d")+ #,timezone = "Pacific/Honolulu") + # x-axis dates
   guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
   labs(x = "Date", y = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"), #"PAR (µmol/m²/s)"
-       title = "Underwater Light (PAR) Time Series",
+       title = "Underwater Light (PAR) 15-Minute Average Time Series",
        subtitle = "Paikō Beach, July–October 2026",
        color = "Zone") +
   theme_bw(base_size = 11) +
   theme(plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
         plot.subtitle = element_text(size = 11, hjust = 0.5),
-        axis.text.x = element_text(angle = 45, hjust = 1),
+        #axis.text.x = element_text(angle = 45, hjust = 1), # angle x axis labels
         legend.position = "top")
 
 PaikoLight
@@ -237,10 +251,10 @@ PaikoLight
 
 
 # Plot july experiment data only to see better
-PaikoLight_July <- HoboData_all |>
+PaikoLight_July <- HoboData_15min |>
   filter(!is.na(zone)) |> # filter by zone
-  filter(month(Date_Time) == 07, year(Date_Time) == 2026) |> # July 2026 only
-  ggplot(aes(x = Date_Time, y = PAR_estimate,
+  filter(month(Date_Time15min) == 07, year(Date_Time15min) == 2026) |> # July 2026 only
+  ggplot(aes(x = Date_Time15min, y = mean_PAR,
            color = zone, group = interaction(zone, source_file))) +
   geom_line(linewidth = 0.25, alpha = 0.6) +
   scale_color_manual(values = c("Inshore" = "#e6cc00","Offshore" = "#e69b00")) + # light colors
@@ -252,7 +266,7 @@ PaikoLight_July <- HoboData_all |>
        title = "Underwater Light (PAR) Time Series",
        subtitle = "Paikō Beach, July 'Dry Season' Experiment 2026",
        color = "Zone") +
-  theme_bw(base_size = 11) +
+  theme_bw(base_size = 8) +
   theme(plot.title = element_text(face = "bold", size = 11, hjust = 0.5),
         plot.subtitle= element_text(size = 10, hjust = 0.5),
         axis.text.x = element_text(angle = 45, hjust = 1),
@@ -277,13 +291,13 @@ PaikoLight_July
 
 
 # Plot 3 days of july experiment data only to see even better
-PaikoLight_3days <- HoboData_all |>
+PaikoLight_3days <- HoboData_15min |>
   filter(!is.na(zone),
-         Date_Time >= ymd("2026-07-14"),
-         Date_Time < ymd("2026-07-17")) |> # filter by zone and 3 days
-  ggplot(aes(x = Date_Time, y = PAR_estimate,
+         Date_Time15min >= ymd("2026-07-14"),
+         Date_Time15min < ymd("2026-07-17")) |> # filter by zone and 3 days
+  ggplot(aes(x = Date_Time15min, y = mean_PAR,
            color = zone, group = interaction(zone, source_file))) +
-  geom_line(linewidth = 0.25, alpha = 0.6) +
+  geom_line(linewidth = 1, alpha = 0.6) +
   scale_color_manual(values = c("Inshore" = "#e6cc00","Offshore" = "#e69b00")) + # light colors
   coord_cartesian(ylim = c(0, 2100))+ # increase y-axis max
   scale_x_datetime(date_breaks = "6 hours", 
@@ -291,8 +305,8 @@ PaikoLight_3days <- HoboData_all |>
                    timezone = "Pacific/Honolulu") +
   guides(color = guide_legend(override.aes = list(linewidth = 3, alpha = 1))) + # make legen lines thicker
   labs(x = "Date", y = expression("PAR ("*mu*"mol photons "*m^-2*s^-1*")"), #"PAR (µmol/m²/s)"
-       title = "Underwater Light (PAR) Over 3 Days",
-       subtitle = "Paikō Beach, July 'Dry Season' Experiment 2026",
+       #title = "Underwater Light (PAR) Over 3 Days",
+       #subtitle = "Paikō Beach, July 'Dry Season' Experiment 2026",
        color = "Zone") +
   theme_bw(base_size = 11) +
   theme(plot.title = element_text(face = "bold", size = 11, hjust = 0.5),
@@ -324,7 +338,7 @@ PaikoLight_3days
 
 # plot the temperature and light across time for inshore and offshore
 # Plot temperature over time
-PaikoHoboTemp <- HoboData_all |> # see comments in light plot above
+PaikoHoboTemp <- HoboData_15min |> # see comments in light plot above
   filter(!is.na(zone)) |> # filter by zone
   ggplot(aes(x = Date_Time, y = Temperature_C,
              color = zone, group = interaction(zone, source_file))) +

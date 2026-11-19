@@ -174,6 +174,7 @@ glimpse(CommunityComp_categories)
 ```{r}
 #| warning: false
 #| message: false
+#| include: true
 
 # summarize percent cover by species and zone
 PercentCover_table<- CommunityCompSummer_long |>
@@ -189,7 +190,23 @@ PercentCover_table<- CommunityCompSummer_long |>
 PercentCover_table
 ```
 
-### Relative Percent Cover by Species  
+### Relative Percent Cover by Species and Substrate  
+Calculate relative cover in each zone.  
+```{r}
+#| warning: false
+#| message: false
+
+# summarize counts by zone: calculate relative cover totals
+CommunityCompSummer_species <- CommunityCompSummer_long %>% 
+  group_by(zone, species_name, species) |> 
+  summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") |> # adds counts for each species across all quadrats within a zone
+  group_by(zone) |>  # calc total in each zone
+  mutate(relative_cover = (total_count / sum(total_count))*100) |>  # percent cover for each status
+  ungroup()
+
+CommunityCompSummer_species
+```
+
 ```{r}
 #| warning: false
 #| message: false
@@ -200,10 +217,6 @@ PercentCover_table
 #| fig-height: 7
 #| fig-width: 8
 
-# summarize counts by zone: calculate relative cover totals
-CommunityCompSummer_species <- CommunityCompSummer_long %>% 
-  group_by(zone, species_name, species) |> 
-  summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") # adds counts for each species across all quadrats within a zone
 
 # match species codes to scientific names
 species_labels <- setNames(Species_Names$species_name, Species_Names$species)
@@ -220,14 +233,14 @@ CommunityComp_July2026 <- ggplot(CommunityCompSummer_species,
   labs(x = "Zone",y = "Relative Percent Cover (%)", fill = "Species",
        title = "Relative Percent Cover by Species",
        subtitle = "Paikō Beach, July 2026") +
-  theme_classic() +
+  theme_bw(base_size = 14) +
   theme(panel.grid = element_blank(),
-        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
-        axis.text.x = element_text(size = 11),
+        plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+        axis.text.x = element_text(size = 12),
         plot.subtitle = element_text(size = 11, hjust = 0.5))
 
 CommunityComp_July2026
-#ggsave(here("Output", "EnviroParameters","CommunityComp_July2026.jpg"))
+ggsave(here("Output", "EnviroParameters","CommunityComp_July2026.jpg"))
 ```
 
 
@@ -278,9 +291,10 @@ CategoryCommunityComp_July2026<-ggplot(CommunityComp_categories_summary,
        title = "Relative Community Composition by Category",
        subtitle = "Paikō Beach, July 2026") +
   guides(color = "none") + # keep only legend for fill since fill and color are the same
+  theme_classic()+
   theme(panel.grid = element_blank(),
-         plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
-         plot.subtitle = element_text(size = 11, hjust = 0.5),
+         plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+         plot.subtitle = element_text(size = 12, hjust = 0.5),
          strip.text = element_text(size = 12)) # making labels bigger
 
 CategoryCommunityComp_July2026
@@ -289,6 +303,26 @@ ggsave(here("Output", "EnviroParameters", "CategoryCommunityComp_July2026.jpg"))
 
 
 ### Relative Community Composition for Macroalgae Only  
+Calculate cover for macroalgae species.  
+```{r}
+#| warning: false
+#| message: false
+
+# select only the algal categories
+CommunityComp_algae <- CommunityComp_categories |>
+  filter(category %in% c("Green Algae", "Red Algae", "Brown Algae")) 
+
+# summarize algae counts by species/ zone
+CommunityComp_algae_species <- CommunityComp_algae |>
+  group_by(zone, species) |>
+  summarise(total_count = sum(count, na.rm = TRUE),.groups = "drop") |> 
+  group_by(zone) |>  # calc total in each zone
+  mutate(relative_cover = (total_count / sum(total_count))*100) |>  # percent cover for each status
+  ungroup()
+
+CommunityComp_algae
+```
+
 ```{r}
 #| warning: false
 #| message: false
@@ -298,15 +332,7 @@ ggsave(here("Output", "EnviroParameters", "CategoryCommunityComp_July2026.jpg"))
 #| eval: true
 #| fig-height: 7
 #| fig-width: 8
-
-# select only the algal categories
-CommunityComp_algae <- CommunityComp_categories |>
-  filter(category %in% c("Green Algae", "Red Algae", "Brown Algae")) 
-
-# summarize algae counts by species/ zone
-CommunityComp_algae_species <- CommunityComp_algae |>
-  group_by(zone, species) |>
-  summarise(total_count = sum(count, na.rm = TRUE),.groups = "drop") 
+  
 
 # make a plot relative algal composition
 MacroalgaeCommunityComp_July2026 <- ggplot(CommunityComp_algae_species,
@@ -319,17 +345,38 @@ MacroalgaeCommunityComp_July2026 <- ggplot(CommunityComp_algae_species,
   labs(x = "Zone", y = "Relative Algal Percent Cover (%)",
     fill = "Species", title = "Macroalgal Community Composition",
     subtitle = "Paikō Beach, July 2026") +
-  theme_classic() +
+  theme_bw(base_size = 14) +
   theme(panel.grid = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
-        plot.subtitle = element_text(size = 11, hjust = 0.5))
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 12, hjust = 0.5))
 
 MacroalgaeCommunityComp_July2026
-#ggsave(here("Output", "EnviroParameters", "MacroalgaeCommunityComp_July2026.jpg"))
+ggsave(here("Output", "EnviroParameters", "MacroalgaeCommunityComp_July2026.jpg"))
 ```
 
 
 ### Relative Native and Invasive Composition  
+Calculate native and invasive species cover.  
+```{r}
+#| warning: false
+#| message: false
+
+# filter for native and invasive algae
+CommunityComp_status <- CommunityComp_algae |>
+  filter(community %in% c("Native", "Invasive"))
+
+# summarize counts by zone and community
+AlgalStatus_summary <- CommunityComp_status |>
+  group_by(zone, community) |> # Relative invasive cover = invasive algal counts/invasive + native algal counts x100
+  summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") |>  # absolute percent cover
+  group_by(zone) |>  # calc total in each zone
+  mutate(relative_cover = (total_count / sum(total_count))*100) |>  # percent cover for each status
+  ungroup()
+
+
+AlgalStatus_summary
+```
+
 ```{r}
 #| warning: false
 #| message: false
@@ -341,15 +388,6 @@ MacroalgaeCommunityComp_July2026
 #| fig-width: 8
 
 
-# filter for native and invasive algae
-CommunityComp_status <- CommunityComp_algae |>
-  filter(community %in% c("Native", "Invasive"))
-
-# summarize counts by zone and community
-AlgalStatus_summary <- CommunityComp_status |>
-  group_by(zone, community) |> # Relative invasive cover = invasive algal counts/invasive + native algal counts x100
-  summarise(total_count = sum(count, na.rm = TRUE),.groups = "drop") # absolute percent cover
-
 # plot
 AlgalStatus_July2026<-ggplot(AlgalStatus_summary,
                              aes(x = zone, y = total_count, fill = community)) +
@@ -360,13 +398,13 @@ AlgalStatus_July2026<-ggplot(AlgalStatus_summary,
   labs(x = "Zone", y = "Relative Macroalgal Percent Cover (%)",
        fill = "Community",  title = "Macroalgal Native and Invasive Cover by Zone", 
        subtitle = "Paikō Beach, July 2026") +
-  theme_classic()+
+  theme_bw(base_size = 16)+
   theme(panel.grid = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5),
-        plot.subtitle = element_text(size = 11, hjust = 0.5))
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5))
 
 AlgalStatus_July2026
-#ggsave(here("Output", "EnviroParameters", "AlgalStatus_July2026.jpg"))
+ggsave(here("Output", "EnviroParameters", "AlgalStatus_July2026.jpg"))
 ```
 
 
@@ -525,12 +563,12 @@ AlgaeEnviro_zone_July2026 <- ggplot(Algae_enviro,
                               "offshore" = "Offshore")) +
   labs(x = "Zone", y = NULL, title = "In Situ Environmental Conditions",
        subtitle = "Paikō Beach, July 2026") +
-  theme_bw() +
+  theme_bw(base_size = 18) +
   theme(legend.position = "none",
         panel.grid = element_blank(),
-        plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
+        plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
         panel.spacing = unit(0.5, "cm"),
-        plot.subtitle = element_text(size = 11, hjust = 0.5))
+        plot.subtitle = element_text(size = 16, hjust = 0.5))
 
 AlgaeEnviro_zone_July2026
 ggsave(here("Output", "EnviroParameters", "AlgaeEnviro_zone_July2026.jpg"))
@@ -549,7 +587,8 @@ CollectionSummer_means<-CollectionSummer |>
                values_to = "Value") %>%  # measurement and all metadata
 # Summarise Means and Variances
   group_by(zone, Variable) %>% # group by inshore/offshore and variables
-  summarise(parameter_mean = mean(Value, na.rm = TRUE)) # get mean 
+  summarise(parameter_mean = mean(Value, na.rm = TRUE),
+            parameter_sd = sd(Value, na.rm = TRUE)) # get mean 
 
 CollectionSummer_means 
 ```

@@ -1,0 +1,40 @@
+﻿logger,zone,deploy_date,deploy_time,retrieve_date,retrieve_time,lat_dd,long_dd,waypoint,depth_cm,serial_number,notes
+HOBO Temp/Lux (MX2022),inshore,2026-07-02,10:02,2026-07-28,7:20,21.281590964645,-157.732182992622,Hobo-IN1-RW,NA,20555870,2026/7/2 - 2026/7/13 only
+HOBO Temp/Lux (MX2022),inshore,2026-07-02,9:46,2026-07-28,7:26,21.281604962423,-157.731670020148,Hobo-IN2-FP,NA,20555838,2026/7/2 - 2026/7/26
+HOBO Temp/Lux (MX2022),offshore,2026-07-02,8:51,2026-07-28,7:07,21.279563969001,-157.732143010944,Hobo-OF3-988,NA,21335988,NONE
+HOBO Temp/Lux (MX2022),offshore,2026-07-02,9:19,2026-07-28,7:00,21.279421979561,-157.731554014608,Hobo-OF4-863,NA,20555863,2026/7/2 - 2026/7/17
+TCM-4 Tilt Meter,inshore,2026-07-17,8:26,2026-07-18,7:30,21.281532961875,-157.732319030911,Tilt-IN,30-40,2407504,"slightly away from other loggers, Tilt 2"
+TCM-4 Tilt Meter,offshore,2026-07-17,8:48,2026-07-18,7:15,21.279575033113,-157.732159020379,Tilt-OF,65-75,2407508,Tilt 3
+HOBO Water Level,inshore,2026-07-17,8:21,2026-07-18,7:27,21.281590964645,-157.732182992622,Hobo-IN1-RW,"0-14, 32-47",20810870,"depth time 9:45 deploy, recording start at 7:00, exposed at 9:35, depth time 7:27 retrieve"
+HOBO Water Level,offshore,2026-07-17,8:43,2026-07-18,7:15,21.279563969001,-157.732143010944,Hobo-OF3-988,"55-74, 85-95",20810872,"depth time 9:20 deploy, depth time 7:10 retrieve"
+HOBO Salinity,inshore,2026-07-17,9:07,2026-07-18,7:26,21.281590964645,-157.732182992622,Hobo-IN1-RW,NA,20739335,"salinity start 35.7 @ 8:21, salinity end 35.4 @7:32 (supposed to get conductivity)"
+HOBO Salinity,offshore,2026-07-17,9:17,2026-07-18,7:09,21.279563969001,-157.732143010944,Hobo-OF3-988,NA,20739347,"salinity start 35.4 @ 8:43, salinity end 35.4 @7:16 (supposed to get conductivity)"
+HOBO PAR,inshore,2026-07-17,8:21,2026-07-18,7:27,21.281590964645,-157.732182992622,Hobo-IN1-RW,NA,22491170,"record start 9:00, record end 7/20 (cut off two days for analysis)"
+HOBO PAR,offshore,2026-07-17,8:43,2026-07-18,7:15,21.279563969001,-157.732143010944,Hobo-OF3-988,NA,22491164,"record start 9:00, record end 7/20 (cut off two days for analysis)"
+HOBO Salinity Calibration,inshore,2026-07-27,5:47,2026-07-27,7:14,21.281590964645,-157.732182992622,HOBO1,NA,20739335,record start 5:30
+HOBO Salinity Calibration,offshore,2026-07-27,5:51,2026-07-27,7:09,21.280742967501,-157.732286006212,Of-salcal,NA,20739347,
+HOBO PAR Calibration,offshore,2026-08-12,7:34,2026-08-13,8:50,21.279582995921,-157.732124989852,HOBO-OFF-new,NA,22491164,record time 7:30
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
